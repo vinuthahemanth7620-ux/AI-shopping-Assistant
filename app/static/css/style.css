@@ -1,0 +1,202 @@
+/* ====================================================================
+   AI SHOPPING ASSISTANT - CORE DESIGN SYSTEM
+   Inspired by Flipkart & Amazon Modern E-Commerce UX
+   ==================================================================== */
+
+:root {
+  /* Brand Color Tokens */
+  --primary: #2874f0;         /* Flipkart Blue */
+  --primary-hover: #1259ca;
+  --secondary: #ff9f00;       /* E-Commerce Orange/Yellow */
+  --secondary-hover: #e08b00;
+  --accent-green: #388e3c;     /* Discount / Rating Green */
+  --accent-red: #d32f2f;
+  
+  /* Neutral Color Tokens */
+  --bg-main: #f1f3f6;
+  --bg-card: #ffffff;
+  --text-primary: #212121;
+  --text-secondary: #878787;
+  --border-color: #e0e0e0;
+
+  /* Typography */
+  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Shadows & Elevation */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Animations */
+  --transition-fast: all 0.2s ease-in-out;
+  --transition-normal: all 0.3s ease-in-out;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+}
+
+/* Navbar Custom Styling */
+.navbar-brand-custom {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: #ffffff !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar-brand-custom span {
+  color: #ffe500;
+  font-style: italic;
+}
+
+.search-bar-input {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  border: none;
+  padding: 10px 16px;
+}
+
+.search-bar-btn {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background-color: #ffffff;
+  border: none;
+  color: var(--primary);
+}
+
+/* Base Card Styling */
+.custom-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-fast);
+}
+
+.custom-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Product Card Styling */
+.product-card {
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  transition: var(--transition-fast);
+  height: 100%;
+}
+
+.product-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+}
+
+.product-card-img-wrapper {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  background-color: #fafafa;
+}
+
+.product-card-img-wrapper img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.product-rating-badge {
+  background-color: var(--accent-green);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.product-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Buttons */
+.btn-primary-custom {
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.btn-primary-custom:hover {
+  background-color: var(--primary-hover);
+  color: #ffffff;
+}
+
+.btn-secondary-custom {
+  background-color: var(--secondary);
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.btn-secondary-custom:hover {
+  background-color: var(--secondary-hover);
+  color: #ffffff;
+}
+
+/* Feature Badge */
+.ai-badge {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  color: #ffffff;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Footer */
+footer {
+  margin-top: auto;
+  background-color: #172337;
+  color: #878787;
+  font-size: 0.9rem;
+}
+
+footer a {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+footer a:hover {
+  color: var(--secondary);
+}

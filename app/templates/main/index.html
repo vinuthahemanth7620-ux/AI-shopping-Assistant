@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - AI Shopping Assistant{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Banner Section -->
+    <div class="p-5 mb-4 rounded-4 text-white shadow-sm" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <span class="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill mb-3">
+                    <i class="fa-solid fa-sparkles me-1"></i> Final Year Capstone Project Foundation
+                </span>
+                <h1 class="display-5 fw-bold mb-3">Shop Smarter with AI-Powered Intelligence</h1>
+                <p class="lead fs-5 text-light opacity-90 mb-4">
+                    Compare gadgets, get personalized recommendations based on your budget, and ask our AI assistant for instant purchasing advice.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="{{ url_for('ai.ai_assistant') }}" class="btn btn-warning btn-lg fw-bold px-4">
+                        <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Try AI Assistant
+                    </a>
+                    <a href="{{ url_for('product.list_products') }}" class="btn btn-outline-light btn-lg fw-semibold px-4">
+                        <i class="fa-solid fa-compass me-2"></i> Explore Products
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center d-none d-lg-block">
+                <i class="fa-solid fa-robot text-warning opacity-75 display-1" style="font-size: 10rem;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core Module Feature Cards Grid -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="custom-card p-4 h-100 text-center">
+                <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-inline-block mb-3 fs-3">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <h5 class="fw-bold">AI Assistant</h5>
+                <p class="text-muted small">Chat with Gemini AI to find products tailored to your exact preferences.</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="custom-card p-4 h-100 text-center">
+                <div class="rounded-circle bg-success bg-opacity-10 text-success p-3 d-inline-block mb-3 fs-3">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+                <h5 class="fw-bold">Smart Comparison</h5>
+                <p class="text-muted small">Side-by-side spec comparison to eliminate purchasing hesitation.</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="custom-card p-4 h-100 text-center">
+                <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 d-inline-block mb-3 fs-3">
+                    <i class="fa-solid fa-calculator"></i>
+                </div>
+                <h5 class="fw-bold">Shopping Planner</h5>
+                <p class="text-muted small">Organize your shopping bucket list while adhering to budget caps.</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="custom-card p-4 h-100 text-center">
+                <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-3 d-inline-block mb-3 fs-3">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <h5 class="fw-bold">Cart Analytics</h5>
+                <p class="text-muted small">Intelligent cart breakdown and savings optimization tips.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Architecture Notice Card -->
+    <div class="alert alert-info border-info shadow-sm p-4 rounded-3">
+        <div class="d-flex align-items-start gap-3">
+            <i class="fa-solid fa-circle-info fs-2 text-info mt-1"></i>
+            <div>
+                <h5 class="alert-heading fw-bold mb-1">Day 1 Project Foundation Initialized!</h5>
+                <p class="mb-0 text-dark">
+                    The complete Flask Application Factory, database DDL schema, SQLAlchemy ORM models, REST API blueprints, base templates, design system CSS, and documentation have been initialized cleanly. Functional business logic will be integrated over the 3-week development sprint.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

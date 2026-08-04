@@ -1,0 +1,68 @@
+<nav class="navbar navbar-expand-lg sticky-top shadow-sm" style="background-color: var(--primary);">
+    <div class="container">
+        <!-- Brand Logo -->
+        <a class="navbar-brand navbar-brand-custom" href="{{ url_for('main.index') }}">
+            <i class="fa-solid fa-robot text-warning me-1"></i> Shop<span>AI</span>
+        </a>
+
+        <!-- Mobile Toggler -->
+        <button class="navbar-toggler text-white border-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Navbar Links & Search -->
+        <div class="collapse navbar-collapse" id="navbarContent">
+            
+            <!-- Global Search Form -->
+            <form class="d-flex mx-auto my-2 my-lg-0 w-50" action="{{ url_for('product.list_products') }}" method="GET">
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control search-bar-input" placeholder="Search products, brands, or ask AI..." aria-label="Search">
+                    <button class="btn search-bar-btn" type="submit">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Navigation Actions -->
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-2">
+                <li class="nav-item">
+                    <a class="nav-link text-white fw-medium" href="{{ url_for('product.list_products') }}">
+                        <i class="fa-solid fa-store me-1"></i> Products
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white fw-medium" href="{{ url_for('ai.ai_assistant') }}">
+                        <span class="ai-badge"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Assistant</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white fw-medium" href="{{ url_for('compare.compare_products') }}">
+                        <i class="fa-solid fa-code-compare me-1"></i> Compare
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white fw-medium" href="{{ url_for('cart.view_planner') }}">
+                        <i class="fa-solid fa-calendar-check me-1"></i> Planner
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white fw-medium position-relative me-2" href="{{ url_for('cart.view_cart') }}">
+                        <i class="fa-solid fa-cart-shopping me-1"></i> Cart
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">0</span>
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle text-white fw-semibold btn btn-outline-light px-3 py-1 text-start" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fa-regular fa-circle-user me-1"></i> Account
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li><a class="dropdown-item" href="{{ url_for('auth.login') }}"><i class="fa-solid fa-right-to-bracket me-2 text-primary"></i> Login</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('auth.register') }}"><i class="fa-solid fa-user-plus me-2 text-success"></i> Register</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('profile.user_profile') }}"><i class="fa-solid fa-id-card me-2 text-secondary"></i> My Profile</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

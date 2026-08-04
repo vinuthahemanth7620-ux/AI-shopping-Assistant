@@ -1,0 +1,47 @@
+<footer class="pt-5 pb-4">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6">
+                <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-robot text-warning me-2"></i>AI Shopping Assistant</h5>
+                <p class="text-muted">An intelligent web application that empowers shoppers to make smart purchasing decisions with AI recommendations, product comparisons, and budget planning.</p>
+                <div class="d-flex gap-3 mt-3">
+                    <a href="#" class="btn btn-sm btn-outline-light rounded-circle"><i class="fa-brands fa-github"></i></a>
+                    <a href="#" class="btn btn-sm btn-outline-light rounded-circle"><i class="fa-brands fa-linkedin"></i></a>
+                    <a href="#" class="btn btn-sm btn-outline-light rounded-circle"><i class="fa-brands fa-x-twitter"></i></a>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <h6 class="text-white fw-semibold mb-3">Quick Navigation</h6>
+                <ul class="list-unstyled d-flex flex-column gap-2">
+                    <li><a href="{{ url_for('product.list_products') }}">All Products</a></li>
+                    <li><a href="{{ url_for('ai.ai_assistant') }}">AI Assistant</a></li>
+                    <li><a href="{{ url_for('compare.compare_products') }}">Product Comparison</a></li>
+                    <li><a href="{{ url_for('cart.view_planner') }}">Shopping Planner</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <h6 class="text-white fw-semibold mb-3">Technology Stack</h6>
+                <ul class="list-unstyled text-muted d-flex flex-column gap-1 fs-6">
+                    <li><i class="fa-brands fa-python me-2 text-warning"></i> Python Flask</li>
+                    <li><i class="fa-solid fa-database me-2 text-info"></i> MySQL Database</li>
+                    <li><i class="fa-brands fa-bootstrap me-2 text-primary"></i> Bootstrap 5</li>
+                    <li><i class="fa-solid fa-sparkles me-2 text-success"></i> Gemini AI API</li>
+                </ul>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <h6 class="text-white fw-semibold mb-3">Project Metadata</h6>
+                <p class="text-muted small">Final Year Engineering Capstone Project</p>
+                <p class="text-muted small mb-0"><i class="fa-regular fa-clock me-1"></i> 3-Week Development Sprint</p>
+            </div>
+        </div>
+        <hr class="my-4 border-secondary">
+        <div class="row align-items-center">
+            <div class="col-md-6 text-center text-md-start">
+                <p class="mb-0 text-muted small">&copy; 2026 AI Shopping Assistant. Built for Engineering Capstone Project.</p>
+            </div>
+            <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
+                <span class="badge bg-secondary">v1.0.0 Foundation</span>
+            </div>
+        </div>
+    </div>
+</footer>
