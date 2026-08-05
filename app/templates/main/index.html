@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Shopping Assistant - Smart Decision Engine{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Banner Section -->
+    <div class="p-5 mb-4 rounded-4 text-white shadow-sm" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <span class="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill mb-3">
+                    <i class="fa-solid fa-clock me-1"></i> Phase 1: Foundation Ready - Coming Soon
+                </span>
+                <h1 class="display-4 fw-bold mb-3">AI Shopping Assistant</h1>
+                <p class="lead fs-5 text-light opacity-90 mb-4">
+                    An intelligent e-commerce helper built to provide smart product recommendations, specification comparisons, and budget-aware shopping planning.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="{{ url_for('product.list_products') }}" class="btn btn-warning btn-lg fw-bold px-4">
+                        <i class="fa-solid fa-compass me-2"></i> Explore Platform (Coming Soon)
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center d-none d-lg-block">
+                <i class="fa-solid fa-robot text-warning opacity-75 display-1" style="font-size: 10rem;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coming Soon Feature Highlights -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="custom-card p-4 h-100 text-center">
+                <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-inline-block mb-3 fs-3">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <h5 class="fw-bold">AI Assistant</h5>
+                <p class="text-muted small">Gemini-powered conversational shopping queries and custom recommendations.</p>
+                <span class="badge bg-secondary">Coming Soon</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="custom-card p-4 h-100 text-center">
+                <div class="rounded-circle bg-success bg-opacity-10 text-success p-3 d-inline-block mb-3 fs-3">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+                <h5 class="fw-bold">Smart Comparison</h5>
+                <p class="text-muted small">Side-by-side product feature matrix and specification breakdown.</p>
+                <span class="badge bg-secondary">Coming Soon</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="custom-card p-4 h-100 text-center">
+                <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 d-inline-block mb-3 fs-3">
+                    <i class="fa-solid fa-calculator"></i>
+                </div>
+                <h5 class="fw-bold">Shopping Planner</h5>
+                <p class="text-muted small">Intelligent basket builder with automated budget cap constraints.</p>
+                <span class="badge bg-secondary">Coming Soon</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="custom-card p-4 h-100 text-center">
+                <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-3 d-inline-block mb-3 fs-3">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <h5 class="fw-bold">Cart Analytics</h5>
+                <p class="text-muted small">Total price breakdown with discount optimization suggestions.</p>
+                <span class="badge bg-secondary">Coming Soon</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Banner -->
+    <div class="alert alert-primary border-primary shadow-sm p-4 rounded-3">
+        <div class="d-flex align-items-start gap-3">
+            <i class="fa-solid fa-circle-info fs-2 text-primary mt-1"></i>
+            <div>
+                <h5 class="alert-heading fw-bold mb-1">Flask Application Foundation Initialized</h5>
+                <p class="mb-0 text-dark">
+                    The core application architecture, database connectivity configuration, error handling structures, Bootstrap layout templates, and blueprint routing skeletons are successfully initialized. Business logic modules will be implemented in subsequent phases.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
