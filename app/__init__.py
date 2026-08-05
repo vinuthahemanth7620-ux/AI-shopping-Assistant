@@ -18,6 +18,9 @@ def create_app(config_name=None):
     # Initialize Extensions with App
     db.init_app(app)
 
+    # Import ORM Models to register with SQLAlchemy metadata
+    from app import models
+
     # Register Error Handlers
     from app.utils.error_handlers import register_error_handlers
     register_error_handlers(app)

@@ -1,9 +1,9 @@
-from flask import Blueprint
+from flask import Blueprint, render_template
 
 profile_bp = Blueprint('profile', __name__)
 
 
 @profile_bp.route('/')
 def user_profile():
-    """User Profile Placeholder Route"""
-    return "Profile Module Coming Soon"
+    """User Profile Route"""
+    return render_template('main/index.html')

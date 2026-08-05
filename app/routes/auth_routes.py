@@ -1,21 +1,21 @@
-from flask import Blueprint
+from flask import Blueprint, render_template
 
 auth_bp = Blueprint('auth', __name__)
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """Authentication Module Login Placeholder"""
-    return "Authentication Module Coming Soon"
+    """Login Route"""
+    return render_template('main/index.html')
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
-    """Authentication Module Register Placeholder"""
-    return "Authentication Module Coming Soon"
+    """Register Route"""
+    return render_template('main/index.html')
 
 
 @auth_bp.route('/logout')
 def logout():
-    """Authentication Module Logout Placeholder"""
-    return "Authentication Module Coming Soon"
+    """Logout Route"""
+    return render_template('main/index.html')

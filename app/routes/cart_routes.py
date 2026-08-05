@@ -1,9 +1,9 @@
-from flask import Blueprint
+from flask import Blueprint, render_template
 
 cart_bp = Blueprint('cart', __name__)
 
 
 @cart_bp.route('/')
 def view_cart():
-    """Shopping Cart Placeholder Route"""
-    return "Shopping Cart Module Coming Soon"
+    """Cart View Route"""
+    return render_template('main/index.html')

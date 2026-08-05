@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}AI Shopping Assistant - Smart Decision Engine{% endblock %}
+{% block title %}Shop Smarter - AI Shopping Assistant{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -9,15 +9,18 @@
         <div class="row align-items-center">
             <div class="col-lg-8">
                 <span class="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill mb-3">
-                    <i class="fa-solid fa-clock me-1"></i> Phase 1: Foundation Ready - Coming Soon
+                    <i class="fa-solid fa-sparkles me-1"></i> Final Year Capstone Project Foundation
                 </span>
-                <h1 class="display-4 fw-bold mb-3">AI Shopping Assistant</h1>
+                <h1 class="display-5 fw-bold mb-3">Shop Smarter with AI-Powered Intelligence</h1>
                 <p class="lead fs-5 text-light opacity-90 mb-4">
-                    An intelligent e-commerce helper built to provide smart product recommendations, specification comparisons, and budget-aware shopping planning.
+                    Compare gadgets, get personalized recommendations based on your budget, and ask our AI assistant for instant purchasing advice.
                 </p>
                 <div class="d-flex flex-wrap gap-3">
-                    <a href="{{ url_for('product.list_products') }}" class="btn btn-warning btn-lg fw-bold px-4">
-                        <i class="fa-solid fa-compass me-2"></i> Explore Platform (Coming Soon)
+                    <a href="{{ url_for('ai.ai_assistant') }}" class="btn btn-warning btn-lg fw-bold px-4">
+                        <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Try AI Assistant
+                    </a>
+                    <a href="{{ url_for('product.list_products') }}" class="btn btn-outline-light btn-lg fw-semibold px-4">
+                        <i class="fa-solid fa-compass me-2"></i> Explore Products
                     </a>
                 </div>
             </div>
@@ -27,7 +30,7 @@
         </div>
     </div>
 
-    <!-- Coming Soon Feature Highlights -->
+    <!-- Core Module Feature Cards Grid -->
     <div class="row g-4 mb-5">
         <div class="col-md-3">
             <div class="custom-card p-4 h-100 text-center">
@@ -35,8 +38,7 @@
                     <i class="fa-solid fa-brain"></i>
                 </div>
                 <h5 class="fw-bold">AI Assistant</h5>
-                <p class="text-muted small">Gemini-powered conversational shopping queries and custom recommendations.</p>
-                <span class="badge bg-secondary">Coming Soon</span>
+                <p class="text-muted small">Chat with Gemini AI to find products tailored to your exact preferences.</p>
             </div>
         </div>
         <div class="col-md-3">
@@ -45,8 +47,7 @@
                     <i class="fa-solid fa-sliders"></i>
                 </div>
                 <h5 class="fw-bold">Smart Comparison</h5>
-                <p class="text-muted small">Side-by-side product feature matrix and specification breakdown.</p>
-                <span class="badge bg-secondary">Coming Soon</span>
+                <p class="text-muted small">Side-by-side spec comparison to eliminate purchasing hesitation.</p>
             </div>
         </div>
         <div class="col-md-3">
@@ -55,8 +56,7 @@
                     <i class="fa-solid fa-calculator"></i>
                 </div>
                 <h5 class="fw-bold">Shopping Planner</h5>
-                <p class="text-muted small">Intelligent basket builder with automated budget cap constraints.</p>
-                <span class="badge bg-secondary">Coming Soon</span>
+                <p class="text-muted small">Organize your shopping bucket list while adhering to budget caps.</p>
             </div>
         </div>
         <div class="col-md-3">
@@ -65,20 +65,19 @@
                     <i class="fa-solid fa-chart-line"></i>
                 </div>
                 <h5 class="fw-bold">Cart Analytics</h5>
-                <p class="text-muted small">Total price breakdown with discount optimization suggestions.</p>
-                <span class="badge bg-secondary">Coming Soon</span>
+                <p class="text-muted small">Intelligent cart breakdown and savings optimization tips.</p>
             </div>
         </div>
     </div>
 
-    <!-- Status Banner -->
-    <div class="alert alert-primary border-primary shadow-sm p-4 rounded-3">
+    <!-- Architecture Notice Card -->
+    <div class="alert alert-info border-info shadow-sm p-4 rounded-3">
         <div class="d-flex align-items-start gap-3">
-            <i class="fa-solid fa-circle-info fs-2 text-primary mt-1"></i>
+            <i class="fa-solid fa-circle-info fs-2 text-info mt-1"></i>
             <div>
                 <h5 class="alert-heading fw-bold mb-1">Flask Application Foundation Initialized</h5>
                 <p class="mb-0 text-dark">
-                    The core application architecture, database connectivity configuration, error handling structures, Bootstrap layout templates, and blueprint routing skeletons are successfully initialized. Business logic modules will be implemented in subsequent phases.
+                    The complete Flask Application Factory, database connection configuration, SQLAlchemy ORM models, REST API blueprints, base templates, and design system CSS have been initialized cleanly.
                 </p>
             </div>
         </div>
