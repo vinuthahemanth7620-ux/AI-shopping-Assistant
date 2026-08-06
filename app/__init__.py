@@ -1,10 +1,12 @@
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from config import config
 
 # Initialize Extensions
 db = SQLAlchemy()
+migrate = Migrate()
 
 
 def create_app(config_name=None):
@@ -15,10 +17,22 @@ def create_app(config_name=None):
     app = Flask(__name__)
     app.config.from_object(config.get(config_name, config['default']))
 
+    # Print non-sensitive database connection parameters for verification
+    if app.config.get('DEBUG') or os.environ.get('FLASK_ENV') == 'development':
+        print("\n==================================================")
+        print("DATABASE CONFIGURATION VERIFICATION")
+        print("==================================================")
+        print(f"  * DB Host : {app.config.get('DB_HOST')}")
+        print(f"  * DB Port : {app.config.get('DB_PORT')}")
+        print(f"  * DB User : {app.config.get('DB_USER')}")
+        print(f"  * DB Name : {app.config.get('DB_NAME')}")
+        print("==================================================\n")
+
     # Initialize Extensions with App
     db.init_app(app)
+    migrate.init_app(app, db)
 
-    # Import ORM Models to register with SQLAlchemy metadata
+    # Import ORM Models to register with SQLAlchemy metadata before migrations
     from app import models
 
     # Register Error Handlers

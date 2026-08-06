@@ -1,25 +1,76 @@
+import enum
 from datetime import datetime
 from app import db
 
 
+class UserRole(str, enum.Enum):
+    """Enumeration for User Roles."""
+    USER = 'user'
+    ADMIN = 'admin'
+
+
 class User(db.Model):
+    """
+    User Model representing system users and administrators.
+    Table: users
+    """
     __tablename__ = 'users'
 
+    # Primary Key
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    # User Attributes & Credentials with Indexes
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     first_name = db.Column(db.String(50), nullable=True)
     last_name = db.Column(db.String(50), nullable=True)
-    role = db.Column(db.Enum('user', 'admin', name='user_roles'), default='user', nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Role Management using SQLAlchemy Enum
+    role = db.Column(
+        db.Enum(UserRole, name='user_roles'),
+        default=UserRole.USER,
+        nullable=False
+    )
+
+    # Soft Delete / Active Status
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+
+    # Timestamps (Indexed created_at for chronological filtering)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
 
     # Relationships
+    # One-to-Many: User -> Cart Items
     cart_items = db.relationship('Cart', backref='user', lazy=True, cascade='all, delete-orphan')
+
+    # One-to-Many: User -> Chat History
     chat_histories = db.relationship('ChatHistory', backref='user', lazy=True, cascade='all, delete-orphan')
+
+    # One-to-Many: User -> AI Recommendations
     recommendations = db.relationship('Recommendation', backref='user', lazy=True, cascade='all, delete-orphan')
+
+    # One-to-Many: User -> Shopping Planner Plans
     shopping_plans = db.relationship('ShoppingPlanner', backref='user', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        """Convert model instance into dictionary format for API serialization."""
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'role': self.role.value if isinstance(self.role, UserRole) else self.role,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
     def __repr__(self):
         return f'<User {self.username}>'
