@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ product.name }} - Product Details{% endblock %}
+
+{% block content %}
+<div class="container py-2">
+    
+    <!-- Breadcrumb Navigation -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb bg-white p-2 rounded border shadow-sm small">
+            {% for item in product.breadcrumbs %}
+                {% if item.url %}
+                    <li class="breadcrumb-item"><a href="{{ item.url }}" class="text-decoration-none text-primary">{{ item.title }}</a></li>
+                {% else %}
+                    <li class="breadcrumb-item active text-truncate" style="max-width: 300px;" aria-current="page">{{ item.title }}</li>
+                {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <!-- Main Product Detail Card -->
+    <div class="card border shadow-sm bg-white mb-4">
+        <div class="card-body p-4">
+            <div class="row g-4">
+                
+                <!-- LEFT COLUMN: Product Image Container -->
+                <div class="col-lg-5 col-md-6">
+                    <div class="bg-light p-4 rounded border text-center position-relative d-flex align-items-center justify-content-center" style="min-height: 380px;">
+                        
+                        <!-- Availability Badge -->
+                        <span class="badge {{ product.stock_badge_class }} position-absolute top-0 end-0 m-3 px-3 py-2 fs-6">
+                            {{ product.stock_badge_text }}
+                        </span>
+
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid rounded max-h-100" style="max-height: 340px; object-fit: contain;"
+                             onerror="this.onerror=null; this.src='https://via.placeholder.com/500x500.png?text=Product+Image';">
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: Product Core Info -->
+                <div class="col-lg-7 col-md-6 d-flex flex-column">
+                    
+                    <!-- Category & Brand -->
+                    <div class="mb-2">
+                        <span class="badge bg-light text-primary border me-2">{{ product.category_name }}</span>
+                        <span class="text-muted fw-semibold small">Brand: <strong class="text-dark">{{ product.brand }}</strong></span>
+                        <span class="text-muted ms-3 small">SKU: <code>{{ product.sku }}</code></span>
+                    </div>
+
+                    <!-- Product Name -->
+                    <h1 class="h3 fw-bold text-dark mb-3">{{ product.name }}</h1>
+
+                    <!-- Rating Section -->
+                    <div class="d-flex align-items-center mb-3 gap-2">
+                        <span class="product-rating-badge fs-6 px-2 py-1">
+                            {{ product.rating.value }} <i class="fa-solid fa-star text-white"></i>
+                        </span>
+                        <div class="text-warning me-2">
+                            {% for _ in range(product.rating.full_stars) %}
+                                <i class="fa-solid fa-star"></i>
+                            {% endfor %}
+                            {% if product.rating.has_half_star %}
+                                <i class="fa-solid fa-star-half-stroke"></i>
+                            {% endif %}
+                            {% for _ in range(product.rating.empty_stars) %}
+                                <i class="fa-regular fa-star text-muted"></i>
+                            {% endfor %}
+                        </div>
+                        <span class="text-muted small">({{ product.rating.value }} out of 5.0 stars)</span>
+                    </div>
+
+                    <!-- Price Section -->
+                    <div class="bg-light p-3 rounded border mb-4">
+                        <div class="text-muted small">Price:</div>
+                        <div class="fs-2 fw-bold text-primary font-monospace">{{ product.price_formatted }}</div>
+                        <div class="small text-muted mt-1">Inclusive of all taxes</div>
+                    </div>
+
+                    <!-- Availability Status -->
+                    <div class="mb-4">
+                        <span class="fw-bold text-dark me-2">Availability:</span>
+                        {% if product.is_available %}
+                            <span class="text-success fw-bold">
+                                <i class="fa-solid fa-circle-check me-1"></i>In Stock ({{ product.stock_quantity }} units available)
+                            </span>
+                        {% else %}
+                            <span class="text-danger fw-bold">
+                                <i class="fa-solid fa-circle-xmark me-1"></i>Currently Out of Stock
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold text-dark h6 mb-2">Description</h5>
+                        <p class="text-secondary leading-relaxed mb-0" style="white-space: pre-line;">
+                            {{ product.full_description }}
+                        </p>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="mt-auto pt-3 border-top d-flex gap-3">
+                        <a href="{{ url_for('product.list_products') }}" class="btn btn-outline-secondary px-4 py-2 fw-semibold">
+                            <i class="fa-solid fa-arrow-left me-2"></i>Back to Products
+                        </a>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- TECHNICAL SPECIFICATIONS SECTION -->
+    <div class="card border shadow-sm bg-white mb-4">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h4 class="card-title mb-0 fw-bold fs-5 text-dark">
+                <i class="fa-solid fa-list-check text-primary me-2"></i>Technical Specifications
+            </h4>
+        </div>
+        <div class="card-body p-4">
+            {% if product.specifications and product.specifications|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered mb-0 align-middle">
+                        <tbody>
+                            {% for key, value in product.specifications.items() %}
+                            <tr>
+                                <th class="bg-light text-dark fw-bold w-30" style="width: 30%;">{{ key }}</th>
+                                <td class="text-secondary">{{ value }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted mb-0 italic">No additional technical specifications recorded for this product.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

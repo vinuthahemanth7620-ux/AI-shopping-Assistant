@@ -1063,7 +1063,8 @@ def seed_database(app=None):
                 "password_hash": generate_password_hash("Admin@12345"),
                 "first_name": "System",
                 "last_name": "Admin",
-                "role": UserRole.ADMIN
+                "role": UserRole.ADMIN,
+                "email_verified": True
             },
             {
                 "username": "demouser",
@@ -1071,7 +1072,8 @@ def seed_database(app=None):
                 "password_hash": generate_password_hash("User@12345"),
                 "first_name": "John",
                 "last_name": "Doe",
-                "role": UserRole.USER
+                "role": UserRole.USER,
+                "email_verified": True
             }
         ]
 

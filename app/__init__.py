@@ -2,11 +2,22 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_login import LoginManager
+from flask_wtf.csrf import CSRFProtect
+from flask_mail import Mail
 from config import config
 
 # Initialize Extensions
 db = SQLAlchemy()
 migrate = Migrate()
+login_manager = LoginManager()
+csrf = CSRFProtect()
+mail = Mail()
+
+# Configure LoginManager Settings
+login_manager.login_view = 'auth.login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'warning'
 
 
 def create_app(config_name=None):
@@ -27,13 +38,28 @@ def create_app(config_name=None):
         print(f"  * DB User : {app.config.get('DB_USER')}")
         print(f"  * DB Name : {app.config.get('DB_NAME')}")
         print("==================================================\n")
+        
+        # Run Startup Environment & SMTP Configuration Diagnostic Validation
+        from app.utils.env_validator import validate_environment
+        validate_environment(app.config)
+
+
 
     # Initialize Extensions with App
     db.init_app(app)
     migrate.init_app(app, db)
+    login_manager.init_app(app)
+    csrf.init_app(app)
+    mail.init_app(app)
 
-    # Import ORM Models to register with SQLAlchemy metadata before migrations
+    # Import ORM Models before migrations and loader setup
     from app import models
+    from app.models.user import User
+
+    # User Loader Callback for Flask-Login
+    @login_manager.user_loader
+    def load_user(user_id):
+        return db.session.get(User, int(user_id))
 
     # Register Error Handlers
     from app.utils.error_handlers import register_error_handlers

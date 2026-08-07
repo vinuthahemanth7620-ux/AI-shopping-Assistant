@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}User Dashboard - AI Shopping Assistant{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    
+    <!-- User Welcome Banner -->
+    <div class="p-4 p-md-5 mb-4 rounded-4 text-white shadow-sm" style="background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <span class="badge bg-success text-white fw-bold px-3 py-2 rounded-pill mb-3">
+                    <i class="fa-solid fa-circle-check me-1"></i> Authenticated Session Active
+                </span>
+                <h1 class="display-6 fw-bold mb-2">Welcome back, {{ current_user.first_name if current_user.first_name else current_user.username }}!</h1>
+                <p class="text-light opacity-90 fs-5 mb-3">
+                    Logged in as <strong class="text-warning">{{ current_user.email }}</strong> | Role: <span class="badge bg-warning text-dark text-capitalize">{{ current_user.role.value if current_user.role.value is defined else current_user.role }}</span>
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('ai.ai_assistant') }}" class="btn btn-warning fw-bold px-4 py-2">
+                        <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Launch AI Assistant
+                    </a>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light fw-semibold px-4 py-2">
+                        <i class="fa-solid fa-right-from-bracket me-2"></i> Sign Out
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-4 text-center d-none d-md-block">
+                <i class="fa-solid fa-shield-cat text-warning opacity-75 display-1" style="font-size: 8rem;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Shortcuts Grid -->
+    <h4 class="fw-bold mb-3 text-dark">Quick Navigation & Tools</h4>
+    <div class="row g-4 mb-4">
+        
+        <!-- Products -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 text-center">
+                <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-inline-block mx-auto mb-3 fs-3">
+                    <i class="fa-solid fa-store"></i>
+                </div>
+                <h5 class="fw-bold">Product Catalog</h5>
+                <p class="text-muted small">Browse 50+ gadgets with JSON specifications and filters.</p>
+                <a href="{{ url_for('product.list_products') }}" class="btn btn-outline-primary btn-sm mt-auto fw-semibold">View Products</a>
+            </div>
+        </div>
+
+        <!-- AI Assistant -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 text-center">
+                <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 d-inline-block mx-auto mb-3 fs-3">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <h5 class="fw-bold">AI Assistant</h5>
+                <p class="text-muted small">Ask Gemini AI for instant device recommendations.</p>
+                <a href="{{ url_for('ai.ai_assistant') }}" class="btn btn-outline-warning text-dark btn-sm mt-auto fw-semibold">Chat with AI</a>
+            </div>
+        </div>
+
+        <!-- Comparison -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 text-center">
+                <div class="rounded-circle bg-success bg-opacity-10 text-success p-3 d-inline-block mx-auto mb-3 fs-3">
+                    <i class="fa-solid fa-code-compare"></i>
+                </div>
+                <h5 class="fw-bold">Spec Comparison</h5>
+                <p class="text-muted small">Side-by-side technical specs comparison matrix.</p>
+                <a href="{{ url_for('compare.compare_products') }}" class="btn btn-outline-success btn-sm mt-auto fw-semibold">Compare Items</a>
+            </div>
+        </div>
+
+        <!-- Planner -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 text-center">
+                <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-3 d-inline-block mx-auto mb-3 fs-3">
+                    <i class="fa-solid fa-calculator"></i>
+                </div>
+                <h5 class="fw-bold">Budget Planner</h5>
+                <p class="text-muted small">Plan and allocate funds under strict budget caps.</p>
+                <a href="{{ url_for('planner.shopping_planner') }}" class="btn btn-outline-danger btn-sm mt-auto fw-semibold">My Planner</a>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

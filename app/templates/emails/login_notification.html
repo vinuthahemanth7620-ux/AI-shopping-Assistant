@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Login Detected – AI Shopping Assistant</title>
+    <style>
+        body { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; background-color: #f1f3f6; margin: 0; padding: 20px; color: #212121; }
+        .email-container { max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e0e0e0; }
+        .email-header { background-color: #2874f0; padding: 25px 30px; text-align: center; color: #ffffff; }
+        .email-header h1 { margin: 0; font-size: 24px; font-weight: 700; font-family: 'Outfit', sans-serif; letter-spacing: 0.5px; }
+        .email-header span { color: #ffe500; font-style: italic; }
+        .email-body { padding: 30px; }
+        .greeting { font-size: 16px; font-weight: 600; color: #212121; margin-top: 0; }
+        .text { font-size: 14px; color: #555555; line-height: 1.6; }
+        .details-box { background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .email-footer { background-color: #172337; color: #878787; padding: 20px; text-align: center; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="email-header">
+            <h1>Shop<span>AI</span> Security</h1>
+        </div>
+
+        <!-- Body -->
+        <div class="email-body">
+            <p class="greeting">Hello {{ user_name or 'User' }},</p>
+            <p class="text">Your AI Shopping Assistant account has been accessed successfully.</p>
+
+            <!-- Login Details Card -->
+            <div class="details-box">
+                <p style="margin-top: 0; font-weight: 600; color: #212529;">Login Details:</p>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 8px 0; font-weight: 600; color: #495057; width: 38%;">Date & Time:</td>
+                        <td style="padding: 8px 0; color: #212529;">{{ login_time }}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 8px 0; font-weight: 600; color: #495057;">IP Address:</td>
+                        <td style="padding: 8px 0; color: #212529;"><code>{{ ip_address }}</code></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 8px 0; font-weight: 600; color: #495057;">Browser:</td>
+                        <td style="padding: 8px 0; color: #212529;">{{ browser }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: 600; color: #495057;">Operating System:</td>
+                        <td style="padding: 8px 0; color: #212529;">{{ operating_system }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Security Notice -->
+            <p class="text">If this was you, no action is required.</p>
+            <p class="text"><strong>If this wasn't you, please change your password immediately.</strong></p>
+
+            <p class="text" style="margin-top: 25px;">Thank you,<br><strong>AI Shopping Assistant Team</strong></p>
+        </div>
+
+        <!-- Footer -->
+        <div class="email-footer">
+            <p>&copy; {{ year or 2026 }} AI Shopping Assistant Team.</p>
+        </div>
+    </div>
+</body>
+</html>

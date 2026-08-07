@@ -1,9 +1,11 @@
-from flask import Blueprint
+from flask import Blueprint, render_template
+from flask_login import login_required, current_user
 
 planner_bp = Blueprint('planner', __name__)
 
 
 @planner_bp.route('/')
+@login_required
 def shopping_planner():
-    """Shopping Planner Blueprint Placeholder Route"""
-    return "Shopping Planner Module Coming Soon"
+    """Protected Shopping Planner Route"""
+    return render_template('main/index.html')
