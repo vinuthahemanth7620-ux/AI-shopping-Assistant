@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Sign In - AI Shopping Assistant{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-5">
+            
+            <!-- Admin Login Card Container -->
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <!-- Header Banner -->
+                <div class="p-4 text-center text-white" style="background: linear-gradient(135deg, #111827 0%, #1f2937 50%, #991b1b 100%);">
+                    <div class="rounded-circle bg-danger bg-opacity-25 d-inline-flex p-3 mb-2 border border-danger">
+                        <i class="fa-solid fa-user-shield fs-2 text-warning"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">Admin Portal Sign In</h3>
+                    <p class="text-light opacity-75 small mb-0">Sign in with administrator credentials to manage products and system settings</p>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body p-4 p-md-5 bg-white">
+                    <form action="{{ url_for('auth.admin_login') }}" method="POST" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <!-- Email Input -->
+                        <div class="mb-4">
+                            <label for="email" class="form-label fw-semibold text-dark">Admin Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted">
+                                    <i class="fa-solid fa-envelope"></i>
+                                </span>
+                                <input type="email" class="form-control border-start-0 ps-0 bg-light" id="email" name="email" 
+                                       placeholder="admin@aishopping.com" value="{{ email if email else '' }}" required autofocus>
+                            </div>
+                        </div>
+
+                        <!-- Password Input -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label for="password" class="form-label fw-semibold text-dark mb-0">Admin Password</label>
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted">
+                                    <i class="fa-solid fa-lock"></i>
+                                </span>
+                                <input type="password" class="form-control border-start-0 border-end-0 ps-0 bg-light" id="password" name="password" 
+                                       placeholder="Enter admin password" required>
+                                <button class="btn btn-light border border-start-0 text-muted" type="button" id="togglePassword">
+                                    <i class="fa-solid fa-eye" id="toggleIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-danger w-100 py-3 fw-bold rounded-3 shadow-sm text-uppercase letter-spacing-1">
+                            <i class="fa-solid fa-shield-halved me-2"></i> Admin Sign In
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Footer Links -->
+                <div class="card-footer bg-light p-3 text-center border-0 d-flex justify-content-between align-items-center px-4">
+                    <a href="{{ url_for('auth.login') }}" class="text-primary small fw-semibold text-decoration-none">
+                        <i class="fa-solid fa-arrow-left me-1"></i> User Login
+                    </a>
+                    <a href="{{ url_for('auth.register') }}" class="text-muted small text-decoration-none">
+                        Register Account
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Password Visibility Toggle Script
+    document.getElementById('togglePassword')?.addEventListener('click', function() {
+        const passwordInput = document.getElementById('password');
+        const toggleIcon = document.getElementById('toggleIcon');
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+        }
+    });
+</script>
+{% endblock %}

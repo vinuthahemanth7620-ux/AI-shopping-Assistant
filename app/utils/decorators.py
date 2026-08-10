@@ -15,7 +15,8 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         role_val = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role)
         if role_val != 'admin' and current_user.role != UserRole.ADMIN:
-            flash('Access denied. Administrator privileges are required to view that page.', 'danger')
+            flash('You do not have permission to access the Admin Dashboard.', 'danger')
             return redirect(url_for('main.dashboard'))
         return f(*args, **kwargs)
     return decorated_function
+

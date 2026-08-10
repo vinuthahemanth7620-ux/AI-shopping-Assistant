@@ -66,7 +66,7 @@ class ProductPresenter:
         desc = product.description or ""
         short_desc = (desc[:115] + '...') if len(desc) > 115 else desc
 
-        in_stock = product.is_available and (product.stock_quantity > 0)
+        in_stock = product.is_available and product.is_active and (product.stock_quantity > 0)
 
         return {
             'id': product.id,
@@ -83,6 +83,7 @@ class ProductPresenter:
             'image_url': image_url or cls.DEFAULT_IMAGE,
             'stock_quantity': product.stock_quantity,
             'is_available': in_stock,
+            'is_active': product.is_active,
             'stock_badge_class': 'bg-success' if in_stock else 'bg-danger',
             'stock_badge_text': 'In Stock' if in_stock else 'Out of Stock'
         }

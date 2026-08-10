@@ -1,4 +1,5 @@
 from sqlalchemy import or_, func
+from sqlalchemy.orm import joinedload
 from app import db
 from app.models.product import Product
 from app.models.category import Category
@@ -66,8 +67,8 @@ class ProductService:
         :param per_page: Items per page (default: 12)
         :return: Pagination object containing items, total, pages, current page, etc.
         """
-        # Base query for active products
-        query = Product.query.filter(Product.is_active == True)
+        # Base query for active products with eager loading of category
+        query = Product.query.options(joinedload(Product.category)).filter(Product.is_active == True)
 
         # 1. Search Query (Name, Brand, Description)
         if search_query:

@@ -27,7 +27,11 @@ def register():
     - Redirects directly to Login page upon success.
     """
     if current_user.is_authenticated:
+        role_val = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role).lower()
+        if role_val == 'admin' or current_user.role == UserRole.ADMIN:
+            return redirect(url_for('admin.dashboard'))
         return redirect(url_for('main.dashboard'))
+
 
     if request.method == 'POST':
         full_name = request.form.get('full_name', '').strip()
@@ -112,7 +116,11 @@ def login():
     - Dispatches non-blocking login notification email post-authentication.
     """
     if current_user.is_authenticated:
+        role_val = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role).lower()
+        if role_val == 'admin' or current_user.role == UserRole.ADMIN:
+            return redirect(url_for('admin.dashboard'))
         return redirect(url_for('main.dashboard'))
+
 
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
@@ -190,9 +198,86 @@ def login():
         if next_page and next_page.startswith('/'):
             return redirect(next_page)
 
+        role_val = user.role.value if hasattr(user.role, 'value') else str(user.role).lower()
+        if role_val == 'admin' or user.role == UserRole.ADMIN:
+            return redirect(url_for('admin.dashboard'))
+
         return redirect(url_for('main.dashboard'))
 
+
     return render_template('auth/login.html')
+
+
+@auth_bp.route('/admin-login', methods=['GET', 'POST'])
+def admin_login():
+    """
+    Admin Login Route
+    - Dedicated login portal for Administrators.
+    - Authenticates credentials using existing User model and Werkzeug password hashing.
+    - Verifies database user.role == 'admin'.
+    - If user role is not admin, denies access with flash message 'Admin access is required.' and re-renders admin login.
+    - On successful admin login, redirects to /admin/ (admin.dashboard).
+    """
+    if current_user.is_authenticated:
+        role_val = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role).lower()
+        if role_val == 'admin' or current_user.role == UserRole.ADMIN:
+            return redirect(url_for('admin.dashboard'))
+        return redirect(url_for('main.dashboard'))
+
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+
+        if not email or not password:
+            flash('Please enter both email address and password.', 'danger')
+            return render_template('auth/admin_login.html', email=email)
+
+        user = User.query.filter_by(email=email).first()
+
+        if not user or not user.check_password(password):
+            flash('Invalid email address or password. Please check your credentials.', 'danger')
+            return render_template('auth/admin_login.html', email=email)
+
+        if not user.is_active:
+            flash('Your account has been deactivated. Please contact support.', 'warning')
+            return render_template('auth/admin_login.html', email=email)
+
+        # Strictly verify database role is admin
+        role_val = user.role.value if hasattr(user.role, 'value') else str(user.role).lower()
+        if role_val != 'admin' and user.role != UserRole.ADMIN:
+            flash('Admin access is required.', 'danger')
+            return render_template('auth/admin_login.html', email=email)
+
+        # Authenticate Admin User via Flask-Login
+        session.permanent = True
+        login_user(user)
+
+        # Audit History Record
+        ip_header = request.headers.get('X-Forwarded-For', request.remote_addr or '127.0.0.1')
+        client_ip = ip_header.split(',')[0].strip() if ip_header else '127.0.0.1'
+        user_agent_str = request.headers.get('User-Agent', 'Unknown Device')
+        ua_info = AuthPresenter.parse_user_agent(user_agent_str)
+
+        try:
+            history = LoginHistory(
+                user_id=user.id,
+                login_time=datetime.utcnow(),
+                ip_address=client_ip,
+                browser=ua_info['browser'],
+                operating_system=ua_info['operating_system'],
+                device_name=ua_info['device_name']
+            )
+            db.session.add(history)
+            db.session.commit()
+        except Exception as audit_err:
+            db.session.rollback()
+
+        user_display_name = user.first_name if user.first_name else user.username
+        flash(f'Welcome to Admin Dashboard, {user_display_name}!', 'success')
+        return redirect(url_for('admin.dashboard'))
+
+    return render_template('auth/admin_login.html')
+
 
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])

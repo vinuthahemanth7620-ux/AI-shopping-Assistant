@@ -74,6 +74,7 @@ def create_app(config_name=None):
     from app.routes.planner_routes import planner_bp
     from app.routes.cart_routes import cart_bp
     from app.routes.profile_routes import profile_bp
+    from app.routes.admin_routes import admin_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -83,5 +84,7 @@ def create_app(config_name=None):
     app.register_blueprint(planner_bp, url_prefix='/planner')
     app.register_blueprint(cart_bp, url_prefix='/cart')
     app.register_blueprint(profile_bp, url_prefix='/profile')
+    app.register_blueprint(admin_bp, url_prefix='/admin')
 
     return app
+

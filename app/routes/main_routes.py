@@ -21,5 +21,6 @@ def dashboard():
 @main_bp.route('/admin')
 @admin_required
 def admin_dashboard():
-    """Protected Admin Dashboard Route (Admin Role Required)"""
-    return render_template('main/dashboard.html')
+    """Redirect legacy /admin route to admin.dashboard"""
+    return redirect(url_for('admin.dashboard'))
+

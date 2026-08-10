@@ -25,34 +25,57 @@
 
             <!-- Navigation Actions -->
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-2">
-                <li class="nav-item">
-                    <a class="nav-link text-white fw-medium" href="{{ url_for('product.list_products') }}">
-                        <i class="fa-solid fa-store me-1"></i> Products
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white fw-medium" href="{{ url_for('ai.ai_assistant') }}">
-                        <span class="ai-badge"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Assistant</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white fw-medium" href="{{ url_for('compare.compare_products') }}">
-                        <i class="fa-solid fa-code-compare me-1"></i> Compare
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white fw-medium" href="{{ url_for('planner.shopping_planner') }}">
-                        <i class="fa-solid fa-calendar-check me-1"></i> Planner
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white fw-medium position-relative me-2" href="{{ url_for('cart.view_cart') }}">
-                        <i class="fa-solid fa-cart-shopping me-1"></i> Cart
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">0</span>
-                    </a>
-                </li>
+                
+                {% set is_admin = current_user.is_authenticated and (current_user.role == 'admin' or (current_user.role.value is defined and current_user.role.value == 'admin')) %}
 
-                <!-- User Account Dropdown (Flask-Login & Role Aware) -->
+                {% if is_admin %}
+                    <!-- ADMIN ROLE NAVBAR LINKS -->
+                    <li class="nav-item">
+                        <a class="nav-link text-white fw-medium" href="{{ url_for('admin.dashboard') }}">
+                            <i class="fa-solid fa-gauge-high me-1 text-warning"></i> Admin Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white fw-medium" href="{{ url_for('admin.list_products') }}">
+                            <i class="fa-solid fa-boxes-stacked me-1"></i> Product Management
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white fw-medium" href="{{ url_for('admin.add_product') }}">
+                            <i class="fa-solid fa-circle-plus me-1 text-success"></i> Add Product
+                        </a>
+                    </li>
+                {% else %}
+                    <!-- NORMAL USER / GUEST SHOPPING NAVBAR LINKS -->
+                    <li class="nav-item">
+                        <a class="nav-link text-white fw-medium" href="{{ url_for('product.list_products') }}">
+                            <i class="fa-solid fa-store me-1"></i> Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white fw-medium" href="{{ url_for('ai.ai_assistant') }}">
+                            <span class="ai-badge"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Assistant</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white fw-medium" href="{{ url_for('compare.compare_products') }}">
+                            <i class="fa-solid fa-code-compare me-1"></i> Compare
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white fw-medium" href="{{ url_for('planner.shopping_planner') }}">
+                            <i class="fa-solid fa-calendar-check me-1"></i> Planner
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white fw-medium position-relative me-2" href="{{ url_for('cart.view_cart') }}">
+                            <i class="fa-solid fa-cart-shopping me-1"></i> Cart
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">0</span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                <!-- User Account Dropdown -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle text-white fw-semibold btn btn-outline-light px-3 py-1 text-start" href="#" role="button" data-bs-toggle="dropdown">
                         <i class="fa-regular fa-circle-user me-1"></i>
@@ -64,23 +87,29 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow">
                         {% if current_user.is_authenticated %}
-                            <li>
-                                <a class="dropdown-item fw-semibold" href="{{ url_for('main.dashboard') }}">
-                                    <i class="fa-solid fa-gauge-high me-2 text-primary"></i> Dashboard
-                                </a>
-                            </li>
-                            {% if current_user.role == 'admin' or (current_user.role.value is defined and current_user.role.value == 'admin') %}
-                            <li>
-                                <a class="dropdown-item fw-semibold text-danger" href="{{ url_for('main.admin_dashboard') }}">
-                                    <i class="fa-solid fa-user-shield me-2 text-danger"></i> Admin Panel
-                                </a>
-                            </li>
+                            {% if is_admin %}
+                                <li>
+                                    <a class="dropdown-item fw-semibold text-danger" href="{{ url_for('admin.dashboard') }}">
+                                        <i class="fa-solid fa-user-shield me-2 text-danger"></i> Admin Dashboard
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item fw-semibold" href="{{ url_for('admin.list_products') }}">
+                                        <i class="fa-solid fa-boxes-stacked me-2 text-primary"></i> Product Management
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li>
+                                    <a class="dropdown-item fw-semibold" href="{{ url_for('main.dashboard') }}">
+                                        <i class="fa-solid fa-gauge-high me-2 text-primary"></i> My Dashboard
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('profile.user_profile') }}">
+                                        <i class="fa-solid fa-id-card me-2 text-info"></i> My Profile
+                                    </a>
+                                </li>
                             {% endif %}
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('profile.user_profile') }}">
-                                    <i class="fa-solid fa-id-card me-2 text-info"></i> My Profile
-                                </a>
-                            </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <a class="dropdown-item text-danger fw-semibold" href="{{ url_for('auth.logout') }}">
@@ -90,7 +119,12 @@
                         {% else %}
                             <li>
                                 <a class="dropdown-item fw-semibold" href="{{ url_for('auth.login') }}">
-                                    <i class="fa-solid fa-right-to-bracket me-2 text-primary"></i> Login
+                                    <i class="fa-solid fa-right-to-bracket me-2 text-primary"></i> User Login
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item fw-semibold text-danger" href="{{ url_for('auth.admin_login') }}">
+                                    <i class="fa-solid fa-user-shield me-2 text-danger"></i> Admin Login
                                 </a>
                             </li>
                             <li>

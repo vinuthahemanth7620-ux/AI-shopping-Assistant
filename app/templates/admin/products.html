@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Products - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+
+    <!-- Header Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1 font-outfit text-dark"><i class="fa-solid fa-boxes-stacked text-primary me-2"></i>Product Catalog Management</h1>
+            <p class="text-muted small mb-0">View, search, filter, edit, and delete products across the platform.</p>
+        </div>
+        <a href="{{ url_for('admin.add_product') }}" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm">
+            <i class="fa-solid fa-plus me-1"></i> Add New Product
+        </a>
+    </div>
+
+    <!-- Filter & Search Controls Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white p-3">
+        <form method="GET" action="{{ url_for('admin.list_products') }}" class="row g-3 align-items-center">
+            
+            <!-- Search Box -->
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                    <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Search by name, brand, SKU..." value="{{ view.query_params.q }}">
+                </div>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="col-md-3">
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for cat in view.categories %}
+                        <option value="{{ cat.id }}" {% if cat.is_selected %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Stock Filter -->
+            <div class="col-md-2">
+                <select name="stock" class="form-select">
+                    <option value="">All Stock</option>
+                    <option value="in_stock" {% if view.query_params.stock == 'in_stock' %}selected{% endif %}>In Stock</option>
+                    <option value="out_of_stock" {% if view.query_params.stock == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+                </select>
+            </div>
+
+            <!-- Submit Button & Reset -->
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary fw-bold flex-grow-1">Filter</button>
+                {% if view.query_params.q or view.query_params.category or view.query_params.stock %}
+                    <a href="{{ url_for('admin.list_products') }}" class="btn btn-outline-secondary" title="Reset Filters"><i class="fa-solid fa-rotate-left"></i></a>
+                {% endif %}
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Product Table Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
+        <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-dark small text-uppercase tracking-wide">Showing {{ view.products | length }} of {{ view.total_count }} Products</span>
+            {% if view.pages > 1 %}
+            <span class="small text-muted">Page {{ view.page }} of {{ view.pages }}</span>
+            {% endif %}
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3" style="width: 70px;">Image</th>
+                            <th>Product Name</th>
+                            <th>Brand</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Rating</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th class="text-end pe-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if view.products %}
+                            {% for p in view.products %}
+                            <tr>
+                                <td class="ps-3">
+                                    <img src="{{ p.image_url }}" alt="{{ p.name }}" class="rounded border p-1 bg-light" style="width: 50px; height: 50px; object-fit: contain;" onerror="this.src='https://via.placeholder.com/100';">
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin.view_product', product_id=p.id) }}" class="fw-bold text-dark text-decoration-none">
+                                        {{ p.name }}
+                                    </a>
+                                    <div class="small text-muted">SKU: {{ p.sku }}</div>
+                                </td>
+                                <td class="fw-semibold text-muted small">{{ p.brand }}</td>
+                                <td><span class="badge bg-light text-primary border">{{ p.category_name }}</span></td>
+                                <td class="fw-bold text-success">{{ p.price_formatted }}</td>
+                                <td>
+                                    <span class="badge bg-warning text-dark fw-bold">
+                                        <i class="fa-solid fa-star me-1"></i>{{ p.rating.value }}
+                                    </span>
+                                </td>
+                                <td class="fw-semibold">{{ p.stock_quantity }} units</td>
+                                <td>
+                                    <span class="badge {{ p.stock_badge_class }}">
+                                        {{ p.stock_badge_text }}
+                                    </span>
+                                </td>
+                                <td class="text-end pe-3">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('admin.view_product', product_id=p.id) }}" class="btn btn-outline-info" title="View Details">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('admin.edit_product', product_id=p.id) }}" class="btn btn-outline-primary" title="Edit Product">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ p.id }}" title="Delete Product">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- Delete Modal Confirmation -->
+                                    <div class="modal fade text-start" id="deleteModal{{ p.id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content rounded-4 border-0 shadow">
+                                                <div class="modal-header border-0 bg-danger text-white">
+                                                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>Confirm Deletion</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body p-4">
+                                                    <p class="mb-2 fs-6">Are you sure you want to delete the product <strong>"{{ p.name }}"</strong>?</p>
+                                                    <p class="text-muted small mb-0">This action will remove the product permanently from MySQL database, product catalog, and AI assistant search.</p>
+                                                </div>
+                                                <div class="modal-footer border-0 bg-light">
+                                                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                                                    <form action="{{ url_for('admin.delete_product', product_id=p.id) }}" method="POST" class="d-inline">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">Delete Product</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center py-5 text-muted">
+                                    <i class="fa-solid fa-box-open fs-2 mb-2 d-block text-secondary"></i>
+                                    No products found matching your search or filter criteria.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination Footer -->
+        {% if view.pages > 1 %}
+        <div class="card-footer bg-white border-top p-3 d-flex justify-content-center">
+            <nav aria-label="Product table pagination">
+                <ul class="pagination mb-0">
+                    <li class="page-item {% if not view.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ view.get_page_url(view.prev_num) if view.has_prev else '#' }}">Previous</a>
+                    </li>
+                    {% for p_num in range(1, view.pages + 1) %}
+                    <li class="page-item {% if p_num == view.page %}active{% endif %}">
+                        <a class="page-link" href="{{ view.get_page_url(p_num) }}">{{ p_num }}</a>
+                    </li>
+                    {% endfor %}
+                    <li class="page-item {% if not view.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ view.get_page_url(view.next_num) if view.has_next else '#' }}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
