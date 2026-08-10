@@ -255,3 +255,71 @@ footer a:hover {
   color: var(--primary-hover);
 }
 
+/* ====================================================================
+   AI CHAT INTERFACE CUSTOM STYLING
+   ==================================================================== */
+.chat-body-container {
+  scroll-behavior: smooth;
+}
+
+.chat-body-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-body-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.chat-body-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.chat-body-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.suggested-chip {
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-color: #cbd5e1;
+  color: #334155;
+  background-color: #ffffff;
+}
+
+.suggested-chip:hover {
+  background-color: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.max-w-75 {
+  max-width: 75%;
+}
+
+.ai-formatted-text p:last-child {
+  margin-bottom: 0;
+}
+
+.transition-all {
+  transition: all 0.25s ease-in-out;
+}
+
+
