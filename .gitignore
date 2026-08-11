@@ -54,3 +54,4 @@ dataset/train-*.parquet
 dataset/cleaned/
 dataset/prepared/*.csv
 dataset/prepared/*.parquet
+scratch/

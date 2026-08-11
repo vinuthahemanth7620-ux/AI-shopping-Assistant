@@ -70,7 +70,11 @@
                     <li class="nav-item">
                         <a class="nav-link text-white fw-medium position-relative me-2" href="{{ url_for('cart.view_cart') }}">
                             <i class="fa-solid fa-cart-shopping me-1"></i> Cart
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">0</span>
+                            {% if cart_item_count and cart_item_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">{{ cart_item_count }}</span>
+                            {% else %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white opacity-75">0</span>
+                            {% endif %}
                         </a>
                     </li>
                 {% endif %}

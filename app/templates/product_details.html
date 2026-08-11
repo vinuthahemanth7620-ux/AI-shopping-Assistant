@@ -101,9 +101,12 @@
                     <!-- Action Buttons -->
                     <div class="mt-auto pt-3 border-top d-flex gap-3">
                         {% if product.is_available and product.is_active and product.stock_quantity > 0 %}
-                            <button type="button" class="btn btn-primary px-4 py-2 fw-semibold" id="addToCartBtn">
-                                <i class="fa-solid fa-cart-shopping me-2"></i>Add to Cart
-                            </button>
+                            <form action="{{ url_for('cart.add_to_cart', product_id=product.id) }}" method="POST" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold" id="addToCartBtn">
+                                    <i class="fa-solid fa-cart-shopping me-2"></i>Add to Cart
+                                </button>
+                            </form>
                         {% else %}
                             <button type="button" class="btn btn-secondary px-4 py-2 fw-semibold" id="addToCartBtn" disabled>
                                 <i class="fa-solid fa-ban me-2"></i>Out of Stock

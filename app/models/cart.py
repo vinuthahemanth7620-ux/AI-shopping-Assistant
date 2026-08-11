@@ -43,13 +43,32 @@ class Cart(db.Model):
             raise ValueError("Cart item quantity must be at least 1.")
         return value
 
+    @property
+    def unit_price(self):
+        """Get normalized INR unit price of the associated product."""
+        if self.product:
+            return self.product.normalized_price_inr
+        return 0.0
+
+    @property
+    def subtotal(self):
+        """Get normalized INR subtotal for this cart line item (quantity * unit_price)."""
+        return self.quantity * self.unit_price
+
     def to_dict(self):
         """Convert model instance into dictionary format for API serialization."""
+        u_price = self.unit_price
+        sub_total = self.subtotal
         return {
             'id': self.id,
             'user_id': self.user_id,
             'product_id': self.product_id,
+            'product_name': self.product.name if self.product else '',
             'quantity': self.quantity,
+            'unit_price': u_price,
+            'unit_price_formatted': f"₹{u_price:,.2f}",
+            'subtotal': sub_total,
+            'subtotal_formatted': f"₹{sub_total:,.2f}",
             'added_at': self.added_at.isoformat() if self.added_at else None
         }
 

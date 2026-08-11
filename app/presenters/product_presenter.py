@@ -10,18 +10,32 @@ class ProductPresenter:
 
     DEFAULT_IMAGE = "/static/images/placeholder_product.png"
 
-    @staticmethod
-    def format_price(amount):
-        """Format price float/numeric into Indian Rupee standard format (e.g., ₹1,29,990.00)."""
-        if amount is None:
-            return "₹0.00"
+    @classmethod
+    def get_normalized_price_inr(cls, product_or_price, category_id=None):
+        """Single central source of truth for normalized INR price calculation."""
+        if product_or_price is None:
+            return 0.0
+        if hasattr(product_or_price, 'normalized_price_inr'):
+            return float(product_or_price.normalized_price_inr)
+        if hasattr(product_or_price, 'price'):
+            raw_p = float(getattr(product_or_price, 'price', 0.0) or 0.0)
+            cat_id = getattr(product_or_price, 'category_id', 0) or 0
+            if cat_id <= 4 or raw_p >= 3000.0:
+                return raw_p
+            return raw_p * 83.0
         try:
-            val = float(amount)
-            # Format number with commas and 2 decimals
-            formatted_num = f"{val:,.2f}"
-            return f"₹{formatted_num}"
+            val = float(product_or_price)
+            if category_id and int(category_id) > 4 and val < 3000.0:
+                return val * 83.0
+            return val
         except (ValueError, TypeError):
-            return "₹0.00"
+            return 0.0
+
+    @classmethod
+    def format_price(cls, product_or_price, category_id=None):
+        """Format price float/numeric into Indian Rupee standard format (e.g., ₹59,178.17)."""
+        norm_p = cls.get_normalized_price_inr(product_or_price, category_id=category_id)
+        return f"₹{norm_p:,.2f}"
 
     @staticmethod
     def format_rating(rating_val):
@@ -58,7 +72,6 @@ class ProductPresenter:
         if not product:
             return None
 
-        # Clean image URL
         image_url = product.image_url.strip() if product.image_url else None
         if image_url and not (image_url.startswith('http://') or image_url.startswith('https://') or image_url.startswith('/')):
             image_url = f"/{image_url}"
@@ -67,6 +80,7 @@ class ProductPresenter:
         short_desc = (desc[:115] + '...') if len(desc) > 115 else desc
 
         in_stock = product.is_available and product.is_active and (product.stock_quantity > 0)
+        norm_p = cls.get_normalized_price_inr(product)
 
         return {
             'id': product.id,
@@ -76,8 +90,9 @@ class ProductPresenter:
             'brand': product.brand,
             'category_name': product.category.name if product.category else 'General',
             'category_id': product.category_id,
-            'price_formatted': cls.format_price(product.price),
-            'price_raw': float(product.price) if product.price is not None else 0.0,
+            'price_formatted': cls.format_price(norm_p),
+            'price_raw': norm_p,
+            'price_raw_db': float(product.price) if product.price is not None else 0.0,
             'rating': cls.format_rating(product.rating),
             'short_description': short_desc,
             'image_url': image_url or cls.DEFAULT_IMAGE,

@@ -86,5 +86,18 @@ def create_app(config_name=None):
     app.register_blueprint(profile_bp, url_prefix='/profile')
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
+    @app.context_processor
+    def inject_cart_count():
+        from flask_login import current_user
+        from sqlalchemy import func
+        from app.models.cart import Cart
+        if current_user.is_authenticated:
+            try:
+                count = db.session.query(func.sum(Cart.quantity)).filter(Cart.user_id == current_user.id).scalar() or 0
+                return dict(cart_item_count=int(count))
+            except Exception:
+                return dict(cart_item_count=0)
+        return dict(cart_item_count=0)
+
     return app
 

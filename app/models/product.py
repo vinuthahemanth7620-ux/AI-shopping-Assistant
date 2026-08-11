@@ -86,8 +86,20 @@ class Product(db.Model):
             raise ValueError("Product stock quantity cannot be negative.")
         return value
 
+    @property
+    def normalized_price_inr(self):
+        """Unified price normalizer property for Product model."""
+        if self.price is None:
+            return 0.0
+        raw_p = float(self.price)
+        cat_id = self.category_id or 0
+        if cat_id <= 4 or raw_p >= 3000.0:
+            return raw_p
+        return raw_p * 83.0
+
     def to_dict(self):
         """Convert model instance into dictionary format for API serialization."""
+        norm_p = self.normalized_price_inr
         return {
             'id': self.id,
             'sku': self.sku,
@@ -95,7 +107,9 @@ class Product(db.Model):
             'name': self.name,
             'brand': self.brand,
             'category_id': self.category_id,
-            'price': float(self.price) if self.price is not None else 0.0,
+            'price': norm_p,
+            'price_raw_db': float(self.price) if self.price is not None else 0.0,
+            'price_formatted': f"₹{norm_p:,.2f}",
             'rating': float(self.rating) if self.rating is not None else 0.0,
             'description': self.description,
             'specifications': self.specifications,

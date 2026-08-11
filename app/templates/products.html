@@ -235,13 +235,21 @@
                                 </p>
 
                                 <!-- Price & Action -->
-                                <div class="pt-2 border-top mt-auto d-flex align-items-center justify-content-between">
+                                <div class="pt-2 border-top mt-auto d-flex align-items-center justify-content-between flex-wrap gap-2">
                                     <div>
-                                        <div class="product-price text-dark font-monospace">{{ product.price_formatted }}</div>
+                                        <div class="product-price text-dark font-monospace fw-bold">{{ product.price_formatted }}</div>
                                     </div>
-                                    <a href="{{ url_for('product.product_details', product_id=product.id) }}" class="btn btn-outline-primary btn-sm fw-semibold">
-                                        View Details <i class="fa-solid fa-chevron-right ms-1"></i>
-                                    </a>
+                                    <div class="d-flex gap-2">
+                                        <form action="{{ url_for('cart.add_to_cart', product_id=product.id) }}" method="POST" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-primary btn-sm fw-semibold" title="Add to Cart">
+                                                <i class="fa-solid fa-cart-shopping me-1"></i> Cart
+                                            </button>
+                                        </form>
+                                        <a href="{{ url_for('product.product_details', product_id=product.id) }}" class="btn btn-outline-secondary btn-sm fw-semibold">
+                                            Details <i class="fa-solid fa-chevron-right ms-1"></i>
+                                        </a>
+                                    </div>
                                 </div>
 
                             </div>

@@ -58,13 +58,19 @@ class AIPresenter:
         if user_id:
             recent_logs = ChatHistory.query.filter_by(user_id=user_id)\
                 .order_by(ChatHistory.created_at.desc())\
-                .limit(4).all()
+                .limit(5).all()
             recent_logs.reverse()
             for log in recent_logs:
                 conversation_context.append({
                     'user_message': log.user_message,
                     'ai_response': log.ai_response
                 })
+        else:
+            try:
+                from flask import session
+                conversation_context = session.get('guest_chat_history', [])[-5:]
+            except Exception:
+                conversation_context = []
 
         # 3. Call AI Service
         ai_result = AIService.generate_ai_response(
@@ -87,7 +93,7 @@ class AIPresenter:
             except Exception as e:
                 logger.error(f"Error formatting product card for product ID {getattr(p, 'id', 'unknown')}: {str(e)}")
 
-        # 5. Persist Chat History if user is authenticated
+        # 5. Persist Chat History (DB for authenticated users, Session for guest users)
         if user_id:
             try:
                 chat_entry = ChatHistory(
@@ -101,6 +107,17 @@ class AIPresenter:
             except Exception as e:
                 db.session.rollback()
                 logger.error(f"Failed to save ChatHistory for user {user_id}: {str(e)}")
+        else:
+            try:
+                from flask import session
+                guest_history = session.get('guest_chat_history', [])
+                guest_history.append({
+                    'user_message': user_message,
+                    'ai_response': ai_response_text
+                })
+                session['guest_chat_history'] = guest_history[-10:]
+            except Exception as e:
+                logger.error(f"Failed to save guest session history: {str(e)}")
 
         return {
             'success': True,

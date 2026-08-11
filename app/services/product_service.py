@@ -1,8 +1,10 @@
-from sqlalchemy import or_, func
+from sqlalchemy import or_, and_, func, case
 from sqlalchemy.orm import joinedload
 from app import db
 from app.models.product import Product
 from app.models.category import Category
+
+USD_TO_INR = 83.0
 
 
 class ProductService:
@@ -28,11 +30,10 @@ class ProductService:
 
     @staticmethod
     def get_price_bounds():
-        """Get the minimum and maximum price across active products for filter inputs."""
-        min_p, max_p = db.session.query(
-            func.min(Product.price),
-            func.max(Product.price)
-        ).filter(Product.is_active == True).first()
+        """Get the minimum and maximum normalized price (INR) across active products for filter inputs."""
+        norm_expr = case((and_(Product.category_id > 4, Product.price < 3000.0), Product.price * USD_TO_INR), else_=Product.price)
+        min_p = db.session.query(func.min(norm_expr)).filter(Product.is_active == True).scalar()
+        max_p = db.session.query(func.max(norm_expr)).filter(Product.is_active == True).scalar()
         
         return {
             'min_price': float(min_p) if min_p is not None else 0.0,
@@ -51,23 +52,11 @@ class ProductService:
 
     @classmethod
     def get_filtered_products(cls, search_query=None, category_id=None, brand=None,
-                              min_price=None, max_price=None, min_rating=None,
-                              sort_by='newest', page=1, per_page=12):
+                               min_price=None, max_price=None, min_rating=None,
+                               sort_by='newest', page=1, per_page=12):
         """
         Query products applying search, category, brand, price range, rating filters, and sorting.
-        
-        :param search_query: Text to search in name, brand, and description
-        :param category_id: Category ID filter
-        :param brand: Brand name filter
-        :param min_price: Minimum price filter
-        :param max_price: Maximum price filter
-        :param min_rating: Minimum rating filter (e.g. 4.0)
-        :param sort_by: Sorting field identifier ('price_asc', 'price_desc', 'rating_desc', 'name_asc', 'newest')
-        :param page: Current page number
-        :param per_page: Items per page (default: 12)
-        :return: Pagination object containing items, total, pages, current page, etc.
         """
-        # Base query for active products with eager loading of category
         query = Product.query.options(joinedload(Product.category)).filter(Product.is_active == True)
 
         # 1. Search Query (Name, Brand, Description)
@@ -94,18 +83,30 @@ class ProductService:
         if brand and str(brand).strip():
             query = query.filter(Product.brand == str(brand).strip())
 
-        # 4. Price Range Filter
+        # 4. Dual-Currency Price Range Filter
         if min_price is not None:
             try:
                 min_p_val = float(min_price)
-                query = query.filter(Product.price >= min_p_val)
+                usd_min = min_p_val / USD_TO_INR
+                query = query.filter(
+                    or_(
+                        and_(or_(Product.category_id <= 4, Product.price >= 3000.0), Product.price >= min_p_val),
+                        and_(Product.category_id > 4, Product.price < 3000.0, Product.price >= usd_min)
+                    )
+                )
             except (ValueError, TypeError):
                 pass
 
         if max_price is not None:
             try:
                 max_p_val = float(max_price)
-                query = query.filter(Product.price <= max_p_val)
+                usd_max = max_p_val / USD_TO_INR
+                query = query.filter(
+                    or_(
+                        and_(or_(Product.category_id <= 4, Product.price >= 3000.0), Product.price <= max_p_val),
+                        and_(Product.category_id > 4, Product.price < 3000.0, Product.price <= usd_max)
+                    )
+                )
             except (ValueError, TypeError):
                 pass
 
@@ -118,16 +119,18 @@ class ProductService:
             except (ValueError, TypeError):
                 pass
 
-        # 6. Sorting (With Product.id.desc() secondary tie-breaker for deterministic pagination)
+        # 6. Sorting with Normalized INR Expression
+        norm_price_expr = case((and_(Product.category_id > 4, Product.price < 3000.0), Product.price * USD_TO_INR), else_=Product.price)
+
         if sort_by == 'price_asc':
-            query = query.order_by(Product.price.asc(), Product.id.desc())
+            query = query.order_by(norm_price_expr.asc(), Product.id.desc())
         elif sort_by == 'price_desc':
-            query = query.order_by(Product.price.desc(), Product.id.desc())
+            query = query.order_by(norm_price_expr.desc(), Product.id.desc())
         elif sort_by == 'rating_desc':
             query = query.order_by(Product.rating.desc(), Product.id.desc())
         elif sort_by == 'name_asc':
             query = query.order_by(Product.name.asc(), Product.id.desc())
-        else:  # Default: newest / id desc
+        else:
             query = query.order_by(Product.id.desc())
 
         # 7. Pagination
