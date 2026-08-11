@@ -49,3 +49,8 @@ instance/
 dataset/train-00000-of-00001.parquet
 
 dataset/prepared/amazon_products_ready.csv
+
+dataset/train-*.parquet
+dataset/cleaned/
+dataset/prepared/*.csv
+dataset/prepared/*.parquet
