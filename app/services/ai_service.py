@@ -4,145 +4,106 @@ import json
 import logging
 import google.generativeai as genai
 from flask import current_app, session
-from sqlalchemy import or_, and_, func, cast, String
+from sqlalchemy import or_, and_, func, case
 from app import db
 from app.models.product import Product
 from app.models.category import Category
 
 logger = logging.getLogger(__name__)
 
-# Approximate exchange rate for budget scaling between INR and USD dataset items
 USD_TO_INR = 83.0
 
 
 class AIService:
     """
-    AI Service Layer - Handles natural language understanding, database product context retrieval,
-    Gemini API prompt engineering, multi-turn context, and response generation.
-    Strictly follows MVP architecture.
+    AI Service Layer - Advanced Natural Language Understanding, Multi-Tier MySQL Product Retrieval Engine,
+    Strict Relevance Validation & Disqualification Gate, Gemini API Integration, and Conversational Response Generation.
+    Follows MVP Architecture.
     """
 
     # -------------------------------------------------------------------------
-    # 1. SEMANTIC CONCEPT & USE-CASE DICTIONARIES
+    # 1. CATEGORY TAXONOMY & STRICT RELEVANCE DEFINITIONS
     # -------------------------------------------------------------------------
-    ALL_ACCESSORY_TERMS = [
-        'mouse', 'mice', 'keyboard', 'keyboards', 'bag', 'bags', 'sleeve', 'sleeves',
-        'stand', 'stands', 'charger', 'chargers', 'cooling pad', 'hub', 'docking station',
-        'case', 'cases', 'cover', 'covers', 'protector', 'protectors', 'adapter', 'adapters',
-        'cable', 'cables', 'holder', 'holders', 'mount', 'mounts', 'strap', 'straps', 'skin',
-        'skins', 'insole', 'insoles', 'shoelace', 'shoelaces', 'cleaner', 'polish', 'filter',
-        'tripod', 'tripods', 'lens', 'lenses', 'memory card', 'sd card', 'bezel', 'ring',
-        'glove', 'rack', 'mat', 'organizer', 'hinge', 'knob', 'lid', 'lids', 'ram', 'memory',
-        'drive', 'thumb drive', 'flash drive', 'tracker', 'grip', 'display', 'screen', 'lcd',
-        'motherboard', 'housing', 'replacement', 'battery', 'power bank', 'portable', 'compatible', 'part'
-    ]
-
-    SEMANTIC_CONCEPT_MAP = {
-        'phone': {
-            'primary_types': ['phone', 'smartphone', 'mobile', 'cellphone', 'iphone', 'galaxy', 'pixel', 'redmi', 'oneplus', 'android'],
-            'primary_categories': ['Mobiles'],
-            'secondary_categories': ['Cell Phones & Accessories'],
-            'primary_keywords': ['phone', 'mobile', 'smartphone', 'cell', '5g', 'android', 'iphone', 'galaxy', 'pro', 'ultra', 'pixel'],
-            'accessories': ['case', 'cases', 'cover', 'covers', 'screen protector', 'protector', 'charger', 'chargers', 'cable', 'cables', 'holder', 'holders', 'mount', 'mounts', 'adapter', 'skin', 'skins', 'strap', 'ring holder', 'car mount']
-        },
+    CATEGORY_TAXONOMY = {
         'laptop': {
-            'primary_types': ['laptop', 'notebook', 'macbook', 'chromebook', 'envy', 'ideapad', 'thinkpad', 'pavilion', 'spectre', 'legion', 'zenbook', 'vivobook', 'aspire', 'inspiron', 'latitude'],
-            'primary_categories': ['Laptops'],
-            'secondary_categories': ['Computers'],
-            'primary_keywords': ['laptop', 'notebook', 'macbook', 'chromebook', 'envy', 'ideapad', 'thinkpad', 'pavilion', 'spectre', 'legion', 'zenbook', 'vivobook', 'aspire', 'inspiron', 'latitude'],
-            'accessories': ['mouse', 'mice', 'keyboard', 'keyboards', 'bag', 'bags', 'sleeve', 'sleeves', 'stand', 'stands', 'charger', 'chargers', 'cooling pad', 'usb hub', 'hub', 'docking station', 'screen protector', 'case', 'cover', 'adapter', 'cable']
+            'cat_ids': [1, 20],
+            'primary_terms': ['laptop', 'laptops', 'notebook', 'notebooks', 'macbook', 'chromebook', 'ultrabook', 'thinkpad', 'ideapad', 'pavilion', 'aspire', 'legion', 'zenbook', 'vivobook', 'inspiron', 'latitude', 'convertible', 'xps', 'zephyrus', 'surface pro'],
+            'disqualifying_accessories': ['charger', 'adapter', 'power cord', 'power cable', 'mouse pad', 'mousepad', 'mouse', 'mice', 'keyboard', 'mat', 'desk pad', 'laptop bag', 'laptop backpack', 'laptop sleeve', 'laptop case', 'laptop skin', 'laptop stand', 'laptop holder', 'laptop charger', 'power adapter', 'laptop cable', 'screen protector', 'keyboard cover', 'docking station', 'usb hub', 'cooling pad', 'ram compatible', 'memory module for', 'memory upgrade for', 'screen replacement', 'battery replacement', 'decal sticker', 'mount holder', 'case cover', 'hard case', 'protective case']
+        },
+        'mobile': {
+            'cat_ids': [2, 17],
+            'primary_terms': ['phone', 'phones', 'mobile', 'mobiles', 'smartphone', 'smartphones', 'cellphone', 'cellphones', 'iphone', 'galaxy', 'pixel', 'redmi', 'oneplus', 'android'],
+            'disqualifying_accessories': ['phone case', 'phone cover', 'screen protector', 'tempered glass', 'phone charger', 'charging cable', 'phone holder', 'car mount', 'phone mount', 'lanyard', 'replacement battery', 'repair kit', 'stylus pen', 'phone skin', 'wallet case', 'holster', 'ring holder', 'selfie stick', 'adapter converter', 'camera bracket', 'smart watch', 'smartwatch']
         },
         'headphone': {
-            'primary_types': ['headphone', 'earphone', 'earbud', 'headset', 'airpods'],
-            'primary_categories': ['Headphones'],
-            'secondary_categories': ['Portable Audio & Accessories', 'Home Audio & Theater'],
-            'primary_keywords': ['headphone', 'earphone', 'earbud', 'headset', 'airpods', 'audio', 'noise canceling'],
-            'accessories': ['case', 'cases', 'ear pads', 'eartips', 'cable', 'cables', 'adapter', 'headphone stand']
+            'cat_ids': [3, 28, 33, 17],
+            'primary_terms': ['headphone', 'headphones', 'earphone', 'earphones', 'earbud', 'earbuds', 'headset', 'headsets', 'airpods', 'aonic', 'soundcore', 'bose quietcomfort', 'sennheiser hd'],
+            'disqualifying_accessories': ['headphone case', 'headphone cover', 'headphone stand', 'headphone holder', 'headphone hanger', 'eartips', 'ear pads', 'headphone cushion', 'headphone cable', 'audio adapter', 'headphone amp', 'headphone amplifier', 'dust plug', 'cleaner kit']
         },
         'watch': {
-            'primary_types': ['watch', 'smartwatch', 'fitbit'],
-            'primary_categories': ['Smart Watches'],
-            'secondary_categories': [],
-            'primary_keywords': ['watch', 'smartwatch', 'fitness watch', 'fitbit'],
-            'accessories': ['band', 'bands', 'strap', 'straps', 'screen protector', 'case', 'charger', 'cable', 'bezel']
-        },
-        'camera': {
-            'primary_types': ['camera', 'dslr', 'camcorder'],
-            'primary_categories': ['Camera & Photo'],
-            'secondary_categories': [],
-            'primary_keywords': ['camera', 'dslr', 'camcorder', 'action camera', 'dash cam'],
-            'accessories': ['lens', 'lenses', 'tripod', 'tripods', 'bag', 'bags', 'battery', 'memory card', 'sd card', 'filter', 'flash', 'strap', 'mount', 'cap', 'hood', 'case', 'adapter']
+            'cat_ids': [4, 5, 7],
+            'primary_terms': ['watch', 'watches', 'smartwatch', 'smartwatches', 'fitbit', 'timepiece', 'chronograph'],
+            'disqualifying_accessories': ['watch band', 'watch strap', 'watchband', 'watch bezel', 'screen protector', 'watch charger', 'charging cable', 'watch case', 'watch stand', 'watch winder', 'candle', 'lamp']
         },
         'shoe': {
-            'primary_types': ['shoe', 'shoes', 'footwear', 'sneaker', 'boot', 'sandal'],
-            'primary_categories': ['AMAZON FASHION', 'Sports & Outdoors'],
-            'secondary_categories': [],
-            'primary_keywords': ['shoe', 'shoes', 'footwear', 'sneaker', 'boot', 'running shoe'],
-            'accessories': ['insole', 'insoles', 'shoelace', 'shoelaces', 'shoe horn', 'cleaner', 'polish', 'tree', 'socks']
+            'cat_ids': [5, 35],
+            'primary_terms': ['shoe', 'shoes', 'sneaker', 'sneakers', 'footwear', 'running shoe', 'running shoes', 'athletic shoe', 'athletic shoes', 'jogging shoe', 'walking shoe'],
+            'disqualifying_accessories': ['necklace', 'pendant', 'ring', 'earrings', 'jewelry', 't-shirt', 'shirt', 'pants', 'socks', 'shoelace', 'insole', 'shoe horn', 'shoe tree', 'shoe polish', 'cleaner', 'shoe bag', 'towel', 'keychain', 'charm', 'cosplay costume', 'sandal', 'sandals', 'slipper', 'slippers', 'pump', 'heels', 'high heel', 'boot', 'boots', 'ankle boot']
         },
-        'kitchen': {
-            'primary_types': ['kitchen', 'cooking', 'cookware', 'appliance', 'oven', 'mixer', 'blender', 'air fryer'],
-            'primary_categories': ['Appliances', 'Amazon Home', 'Tools & Home Improvement'],
-            'secondary_categories': [],
-            'primary_keywords': ['kitchen', 'cookware', 'mixer', 'blender', 'oven', 'air fryer', 'pot', 'pan'],
-            'accessories': ['sponge', 'towel', 'cleaner', 'rack', 'mat', 'organizer', 'glove']
+        'appliance': {
+            'cat_ids': [10, 9],
+            'primary_terms': ['mixer', 'blender', 'oven', 'microwave', 'air fryer', 'fryer', 'cooker', 'refrigerator', 'fridge', 'toaster', 'kettle', 'cookware', 'pot', 'pan', 'juicer', 'coffee maker', 'espresso machine', 'food processor', 'dishwasher', 'slow cooker', 'pressure cooker', 'waffle maker'],
+            'disqualifying_accessories': ['cord organizer', 'cord wrap', 'cord holder', 'dust cover', 'appliance cover', 'magnet', 'dishwasher magnet', 'pull handle', 'finger pull', 'hinge', 'caulking', 'candle', 'night light', 'screw', 'faucet', 'rinser', 'glass rinser', 'mat', 'desk pad', 'push pins', 'light bulb', 'bulb', 'chandelier', 'pendant light']
         },
-        'tv': {
-            'primary_types': ['tv', 'television', 'monitor', 'display'],
-            'primary_categories': ['Home Audio & Theater', 'Computers', 'All Electronics'],
-            'secondary_categories': [],
-            'primary_keywords': ['tv', 'television', 'monitor', '4k tv', 'oled tv', 'led tv'],
-            'accessories': ['wall mount', 'mount', 'tv stand', 'stand', 'remote', 'hdmi cable', 'cable', 'bracket']
+        'camera': {
+            'cat_ids': [15],
+            'primary_terms': ['camera', 'cameras', 'dslr', 'camcorder', 'action camera', 'dash cam', 'mirrorless camera', 'digital camera', 'vlogging camera'],
+            'disqualifying_accessories': ['backdrop', 'background', 'camera bag', 'camera case', 'camera strap', 'tripod', 'monopod', 'camera lens', 'lens filter', 'cleaning kit', 'camera battery', 'camera charger', 'sd card', 'memory card', 'camera mount', 'camera bracket', 'cage', 'ring light', 'softbox', 'screen protector', 'security camera nvr']
+        },
+        'gaming': {
+            'cat_ids': [39, 20, 7],
+            'primary_terms': ['gaming', 'game', 'gamer', 'playstation', 'xbox', 'nintendo', 'console', 'controller', 'gamepad', 'rtx', 'gpu', 'gaming laptop', 'gaming desktop', 'gaming monitor', 'gaming headset', 'gaming mouse'],
+            'disqualifying_accessories': ['door lock', 'caulking', 'cylinder']
         }
     }
 
-    USE_CASE_MAP = {
-        'photography': {
-            'triggers': ['photography', 'camera', 'photo', 'pictures', 'photos', 'portrait', 'shots'],
-            'concepts': ['phone', 'camera'],
-            'keywords': ['camera', 'photography', 'photo', 'lens', 'megapixel', 'sensor', 'zoom']
+    # Explicit Accessory Mapping (used when user asks explicitly for an accessory)
+    ACCESSORY_ROUTING = {
+        'mouse': {
+            'target_terms': ['mouse', 'mice'],
+            'cat_ids': [20, 7],
+            'disqualifying_devices': ['laptop computer', 'notebook computer', 'desktop pc']
         },
-        'programming': {
-            'triggers': ['programming', 'coding', 'developer', 'code', 'software development', 'program'],
-            'concepts': ['laptop'],
-            'keywords': ['laptop', 'ram', 'processor', 'ssd', 'intel', 'ryzen', 'm3', 'i7', 'i9', '16gb', '32gb']
+        'bag': {
+            'target_terms': ['laptop bag', 'laptop backpack', 'laptop sleeve', 'laptop case', 'bag', 'backpack', 'sleeve'],
+            'cat_ids': [20, 5, 31],
+            'disqualifying_devices': ['laptop computer', 'notebook computer']
         },
-        'gaming': {
-            'triggers': ['gaming', 'game', 'gamer', 'play games', 'esports'],
-            'concepts': ['laptop', 'headphone', 'tv'],
-            'keywords': ['gaming', 'rtx', 'gpu', 'graphics', 'hz', 'fps', 'geforce', 'razer', 'rog', 'alienware']
+        'tripod': {
+            'target_terms': ['tripod', 'tripods', 'monopod', 'monopods'],
+            'cat_ids': [15],
+            'disqualifying_devices': ['digital camera', 'dslr camera', 'camcorder']
         },
-        'online_classes': {
-            'triggers': ['online class', 'online classes', 'study', 'student', 'college', 'school', 'zoom', 'education'],
-            'concepts': ['laptop', 'headphone', 'phone'],
-            'keywords': ['laptop', 'headphone', 'mic', 'webcam', 'tablet', 'battery', 'student', 'study']
-        },
-        'working_from_home': {
-            'triggers': ['work from home', 'working from home', 'wfh', 'home office', 'desk work'],
-            'concepts': ['laptop', 'headphone', 'tv', 'kitchen'],
-            'keywords': ['laptop', 'chair', 'desk', 'headphone', 'monitor', 'keyboard', 'mouse', 'coffee']
-        },
-        'cooking': {
-            'triggers': ['cooking', 'cook', 'recipe', 'kitchen', 'food prep', 'bake', 'baking'],
-            'concepts': ['kitchen'],
-            'keywords': ['kitchen', 'cookware', 'mixer', 'blender', 'oven', 'air fryer', 'pot', 'pan', 'utensil']
-        },
-        'gift': {
-            'triggers': ['gift', 'present', 'sister', 'friend', 'brother', 'birthday', 'anniversary'],
-            'concepts': ['headphone', 'watch', 'shoe', 'kitchen', 'phone'],
-            'keywords': ['gift', 'beauty', 'fashion', 'watch', 'headphone', 'accessory', 'stylish']
-        },
-        'travel': {
-            'triggers': ['travel', 'travelling', 'trip', 'flight', 'portable', 'outdoor', 'vacation'],
-            'concepts': ['shoe', 'headphone', 'camera', 'phone'],
-            'keywords': ['travel', 'portable', 'bag', 'lightweight', 'wireless', 'durability', 'battery']
-        },
-        'watching_movies': {
-            'triggers': ['watching movies', 'movie', 'cinema', 'shows', 'entertainment', 'video'],
-            'concepts': ['tv', 'headphone', 'laptop'],
-            'keywords': ['tv', 'theater', 'display', 'screen', 'audio', 'sound', 'oled', 'hdr', 'noise']
+        'case': {
+            'target_terms': ['phone case', 'phone cover', 'iphone case', 'galaxy case', 'case', 'cover'],
+            'cat_ids': [17, 20],
+            'disqualifying_devices': ['smartphone', 'cell phone', 'mobile phone']
         }
     }
+
+    _BRANDS_CACHE = None
+
+    @classmethod
+    def get_cached_brands(cls):
+        """Cache active product brands in memory for instant matching."""
+        if cls._BRANDS_CACHE is None:
+            try:
+                b_rows = db.session.query(Product.brand).filter(Product.is_active == True).distinct().all()
+                cls._BRANDS_CACHE = [b[0] for b in b_rows if b[0] and len(b[0]) >= 2]
+            except Exception as e:
+                logger.error(f"Error caching brands: {str(e)}")
+                return []
+        return cls._BRANDS_CACHE
 
     @staticmethod
     def get_api_key():
@@ -154,39 +115,23 @@ class AIService:
             logger.error(f"Error fetching GEMINI_API_KEY: {str(e)}")
             return ''
 
-    _BRANDS_CACHE = None
-
-    @classmethod
-    def get_cached_brands(cls):
-        """Cache active product brands in memory for instant intent matching."""
-        if cls._BRANDS_CACHE is None:
-            try:
-                b_rows = db.session.query(Product.brand).filter(Product.is_active == True).distinct().all()
-                cls._BRANDS_CACHE = [b[0] for b in b_rows if b[0] and len(b[0]) >= 2]
-            except Exception as e:
-                logger.error(f"Error caching brands: {str(e)}")
-                return []
-        return cls._BRANDS_CACHE
-
     # -------------------------------------------------------------------------
-    # 2. NATURAL LANGUAGE INTENT EXTRACTION
+    # 2. NATURAL LANGUAGE INTENT EXTRACTION & MULTI-TURN CONTEXT
     # -------------------------------------------------------------------------
     @classmethod
     def extract_user_intent(cls, user_query, conversation_history=None):
         """
         Extract structured shopping intent from user query:
-        - product_type: Primary product concept ('phone', 'laptop', 'headphone', etc.)
-        - use_case: Targeted activity ('photography', 'programming', 'gaming', etc.)
+        - product_type: Primary item concept ('laptop', 'mobile', 'headphone', 'camera', 'shoe', 'appliance', 'watch', etc.)
+        - use_case: Targeted intent ('running', 'photography', 'programming', 'gaming', 'gift', 'college', 'travel', etc.)
+        - is_primary_request: True if user asks for a core device/item
+        - is_accessory_request: True ONLY if user explicitly requests an accessory
+        - target_accessory: Requested accessory term ('mouse', 'bag', 'tripod', 'case', etc.)
         - category_ids: List of database Category IDs matching intent
-        - category_names: List of category names
         - max_price / min_price: Extracted numeric budget limits (in INR)
-        - brand: Specific brand if mentioned
-        - min_rating: Rating constraint (e.g., 4.0)
+        - min_rating: Min rating preference
         - sort_preference: 'recommended', 'rating', 'price_asc', 'price_desc'
-        - keywords: Extracted feature / search keywords
-        - is_followup: True if query depends on previous conversation turn
-        - is_primary_request: True if query requests a core device/item
-        - is_accessory_request: True if query explicitly requests an accessory
+        - is_followup: True if current query relies on multi-turn context
         """
         query_text = user_query.strip().lower()
 
@@ -199,113 +144,49 @@ class AIService:
             'min_price': None,
             'brand': None,
             'min_rating': None,
-            'keywords': [],
             'sort_preference': 'recommended',
+            'search_terms': [],
             'query_type': 'general',
-            'is_followup': False,
-            'is_primary_request': False,
+            'is_primary_request': True,
             'is_accessory_request': False,
             'target_accessory': None,
+            'is_followup': False,
             'original_query': user_query
         }
 
-        # Step A: Check if query explicitly asks for an accessory (e.g., "mouse for my laptop", "laptop bag", "phone case")
-        for acc in cls.ALL_ACCESSORY_TERMS:
-            if re.search(r'\b' + re.escape(acc) + r's?\b', query_text):
+        # Step A: Parse Stop Words & Search Terms
+        stop_words = {
+            'i', 'need', 'show', 'me', 'find', 'suggest', 'give', 'a', 'an', 'the', 'for', 'with',
+            'under', 'below', 'less', 'than', 'between', 'and', 'my', 'best', 'good', 'top', 'rated',
+            'highly', 'which', 'what', 'product', 'products', 'something', 'one', 'items', 'item',
+            'recommend', 'looking', 'want', 'please', 'can', 'you', 'have', 'do', 'in', 'of', 'on', 'at', 'buy'
+        }
+        words = [w for w in re.findall(r'\b[a-z0-9]+\b', query_text) if len(w) >= 2]
+        intent['search_terms'] = [w for w in words if w not in stop_words]
+
+        # Step B: EXPLICIT ACCESSORY INTENT DETECTION
+        accessory_triggers = {
+            'mouse': [r'\bmouse\b', r'\bmice\b', r'\bmouse for\b'],
+            'bag': [r'\blaptop bag\b', r'\blaptop backpack\b', r'\blaptop sleeve\b', r'\bbag for laptop\b'],
+            'tripod': [r'\btripod\b', r'\bmonopod\b', r'\bcamera tripod\b'],
+            'case': [r'\bphone case\b', r'\bphone cover\b', r'\bcase for phone\b', r'\bcover for phone\b']
+        }
+
+        for acc_type, patterns in accessory_triggers.items():
+            if any(re.search(pat, query_text) for pat in patterns):
                 intent['is_accessory_request'] = True
-                intent['target_accessory'] = acc
-                intent['keywords'].append(acc)
+                intent['is_primary_request'] = False
+                intent['target_accessory'] = acc_type
                 break
 
-        # Check for conversational follow-up triggers
-        followup_triggers = [
-            'which one', 'which is best', 'cheaper', 'expensive',
-            'higher rating', 'best rated of these', 'top rated of these', 'recommend from these'
-        ]
-
-        # Step B: Detect Primary Product Concept / Type explicitly mentioned in query
-        for concept, data in cls.SEMANTIC_CONCEPT_MAP.items():
-            types_to_check = data.get('primary_types', [])
-            for t in types_to_check:
-                if re.search(r'\b' + re.escape(t) + r's?\b', query_text):
-                    intent['product_type'] = concept
-                    break
-            if intent['product_type']:
-                break
-
-        # If product type wasn't explicitly mentioned, check if query is a follow-up referencing previous turn
-        if not intent['product_type']:
-            if any(trig in query_text for trig in followup_triggers) or len(query_text.split()) <= 4:
-                if conversation_history:
-                    for past in reversed(conversation_history):
-                        past_q = past.get('user_message', '').strip()
-                        if past_q:
-                            past_intent = cls._quick_parse_concepts(past_q)
-                            if past_intent.get('product_type'):
-                                intent['product_type'] = past_intent['product_type']
-                                intent['is_followup'] = True
-                                intent['is_primary_request'] = past_intent.get('is_primary_request', True)
-                                if past_intent.get('max_price') is not None and intent['max_price'] is None:
-                                    intent['max_price'] = past_intent['max_price']
-                                if past_intent.get('min_price') is not None and intent['min_price'] is None:
-                                    intent['min_price'] = past_intent['min_price']
-                                break
-
-        # Set Primary vs Accessory Intent Flags
-        if intent['product_type'] and not intent['is_accessory_request']:
-            intent['is_primary_request'] = True
-            intent['query_type'] = 'primary_product'
-        elif intent['is_accessory_request']:
-            intent['query_type'] = 'accessory'
-
-        # Step C: Detect Use Case (if not an explicit accessory request)
-        for u_key, u_data in cls.USE_CASE_MAP.items():
-            if any(trig in query_text for trig in u_data['triggers']):
-                intent['use_case'] = u_key
-                intent['keywords'].extend(u_data['keywords'])
-                # If product concept not explicitly specified and not an accessory request, inherit primary concept from use case
-                if not intent['product_type'] and not intent['is_accessory_request'] and u_data['concepts']:
-                    intent['product_type'] = u_data['concepts'][0]
-                break
-
-        # Step D: Resolve Category IDs based on Product Concept
-        if intent['product_type'] and intent['product_type'] in cls.SEMANTIC_CONCEPT_MAP:
-            concept_info = cls.SEMANTIC_CONCEPT_MAP[intent['product_type']]
-            target_cats = concept_info['primary_categories'] + concept_info.get('secondary_categories', [])
-            intent['keywords'].extend(concept_info['primary_keywords'])
-            for cname in target_cats:
-                cats = Category.query.filter(Category.name.ilike(f"%{cname}%")).all()
-                for c in cats:
-                    if c.id not in intent['category_ids']:
-                        intent['category_ids'].append(c.id)
-                        intent['category_names'].append(c.name)
-
-        # If explicit accessory request, search across all categories containing products matching accessory term
-        if intent.get('is_accessory_request') and intent.get('target_accessory'):
-            acc_term = intent['target_accessory']
-            acc_prods = Product.query.filter(Product.is_active == True, Product.name.ilike(f"%{acc_term}%")).limit(30).all()
-            for ap in acc_prods:
-                if ap.category_id not in intent['category_ids']:
-                    intent['category_ids'].append(ap.category_id)
-
-        # Direct DB category matching fallback if no category resolved yet
-        if not intent['category_ids']:
-            all_cats = Category.query.filter_by(is_active=True).all()
-            for cat in all_cats:
-                cname = cat.name.lower()
-                c_sing = cname[:-1] if cname.endswith('s') else cname
-                if cname in query_text or c_sing in query_text:
-                    intent['category_ids'].append(cat.id)
-                    intent['category_names'].append(cat.name)
-
-        # Step E: Detect Price / Budget
+        # Step C: Detect Price / Budget Constraints
         range_match = re.search(r'between\s*₹?\s*(\d+k?)\s*and\s*₹?\s*(\d+k?)', query_text)
         if range_match:
-            min_val = cls._parse_number_str(range_match.group(1))
-            max_val = cls._parse_number_str(range_match.group(2))
-            if min_val and max_val:
-                intent['min_price'] = min_val
-                intent['max_price'] = max_val
+            min_v = cls._parse_number_str(range_match.group(1))
+            max_v = cls._parse_number_str(range_match.group(2))
+            if min_v and max_v:
+                intent['min_price'] = min_v
+                intent['max_price'] = max_v
                 intent['query_type'] = 'budget'
 
         if intent['max_price'] is None:
@@ -331,8 +212,8 @@ class AIService:
                     except ValueError:
                         pass
 
-        # Step F: Detect Rating Preferences
-        rating_terms = ['best rated', 'highest rating', 'top rated', 'high rating', 'most rated', 'good reviews', 'best review']
+        # Step D: Detect Rating & Sort Preferences
+        rating_terms = ['best rated', 'highest rating', 'top rated', 'high rating', 'most rated', 'good reviews', 'best review', 'highest ratings', 'best ratings']
         if any(term in query_text for term in rating_terms):
             intent['min_rating'] = 4.0
             intent['sort_preference'] = 'rating'
@@ -348,16 +229,87 @@ class AIService:
                 except ValueError:
                     pass
 
-        # Step G: Detect Sort Preferences
         if any(term in query_text for term in ['cheapest', 'affordable', 'budget friendly', 'low price', 'lowest price', 'lowest cost', 'least expensive']):
             intent['sort_preference'] = 'price_asc'
-        elif any(term in query_text for term in ['premium', 'expensive', 'high end', 'flagship', 'highest price', 'most expensive', 'highest cost']):
+        elif any(term in query_text for term in ['premium', 'expensive', 'high end', 'flagship', 'highest price', 'most expensive']):
             intent['sort_preference'] = 'price_desc'
-        elif any(term in query_text for term in ['best', 'top', 'recommended', 'suggest', 'popular']):
-            if intent['sort_preference'] == 'recommended':
-                intent['sort_preference'] = 'recommended'
 
-        # Step H: Detect Brand
+        # Step E: Match Query against Category Taxonomy Map
+        matched_taxonomies = []
+        for key, tax_info in cls.CATEGORY_TAXONOMY.items():
+            for p_term in tax_info['primary_terms']:
+                if re.search(r'\b' + re.escape(p_term) + r'\b', query_text):
+                    matched_taxonomies.append(key)
+                    for cid in tax_info['cat_ids']:
+                        if cid not in intent['category_ids']:
+                            intent['category_ids'].append(cid)
+                    break
+
+        if matched_taxonomies:
+            intent['product_type'] = matched_taxonomies[0]
+
+        # Step F: Detect Use Cases & Scenarios
+        if 'running' in query_text or 'runner' in query_text or 'jogging' in query_text:
+            intent['use_case'] = 'running'
+            if not intent['product_type'] and not intent['is_accessory_request']:
+                intent['product_type'] = 'shoe'
+                intent['category_ids'] = [5, 35]
+
+        elif 'cooking' in query_text or 'cook' in query_text or 'kitchen' in query_text:
+            intent['use_case'] = 'cooking'
+            if not intent['product_type'] and not intent['is_accessory_request']:
+                intent['product_type'] = 'appliance'
+                intent['category_ids'] = [10, 9]
+
+        elif 'photography' in query_text or 'photo' in query_text or 'photos' in query_text or 'camera' in query_text:
+            intent['use_case'] = 'photography'
+            if not intent['product_type'] and not intent['is_accessory_request']:
+                intent['product_type'] = 'camera'
+                intent['category_ids'] = [15]
+
+        elif 'programming' in query_text or 'coding' in query_text or 'developer' in query_text:
+            intent['use_case'] = 'programming'
+            if not intent['product_type'] and not intent['is_accessory_request']:
+                intent['product_type'] = 'laptop'
+                intent['category_ids'] = [1, 20]
+
+        elif 'gaming' in query_text or 'game' in query_text or 'gamer' in query_text:
+            intent['use_case'] = 'gaming'
+            if not intent['product_type'] and not intent['is_accessory_request']:
+                intent['product_type'] = 'gaming'
+                intent['category_ids'] = [39, 20, 7]
+
+        elif 'gift' in query_text or 'present' in query_text or 'mother' in query_text or 'mom' in query_text or 'sister' in query_text:
+            intent['use_case'] = 'gift'
+            intent['category_ids'] = [5, 6, 9, 27, 4, 3]
+
+        elif 'college' in query_text or 'student' in query_text or 'school' in query_text or 'study' in query_text:
+            intent['use_case'] = 'college'
+            intent['category_ids'] = [1, 20, 3, 31, 5]
+
+        elif 'travel' in query_text or 'travelling' in query_text or 'trip' in query_text or 'vacation' in query_text:
+            intent['use_case'] = 'travel'
+            intent['category_ids'] = [5, 3, 15, 35]
+
+        # Step G: MULTI-TURN CONVERSATIONAL CONTEXT PRESERVATION
+        followup_phrases = ['which one', 'which is best', 'cheaper', 'expensive', 'for programming', 'for gaming', 'for photography', 'under']
+        is_short = len(query_text.split()) <= 5
+
+        if (any(ph in query_text for ph in followup_phrases) or is_short) and conversation_history:
+            for past in reversed(conversation_history):
+                past_q = past.get('user_message', '').strip()
+                if past_q:
+                    past_intent = cls._quick_parse_intent(past_q)
+                    if past_intent.get('product_type'):
+                        if not intent['product_type']:
+                            intent['product_type'] = past_intent['product_type']
+                            intent['category_ids'] = past_intent.get('category_ids', intent['category_ids'])
+                            intent['is_followup'] = True
+                        if past_intent.get('max_price') is not None and intent['max_price'] is None:
+                            intent['max_price'] = past_intent['max_price']
+                        break
+
+        # Step H: Brand Matching
         brands = cls.get_cached_brands()
         for b_name in brands:
             if b_name and len(b_name) >= 2:
@@ -365,226 +317,312 @@ class AIService:
                     intent['brand'] = b_name
                     break
 
-        # Step I: Refine 13-intent taxonomy (query_type)
-        if intent.get('is_followup'):
-            intent['query_type'] = 'followup'
-        elif any(term in query_text for term in ['how many product', 'how many item', 'average rating', 'total products', 'catalog stat', 'dataset stat', 'how many total']):
-            intent['query_type'] = 'dataset_query'
-        elif any(term in query_text for term in ['what categor', 'which categor', 'how many categor', 'categories do you have', 'categories available']):
-            intent['query_type'] = 'category_query'
-        elif any(term in query_text for term in ['compare', 'versus', ' vs ', 'difference between', 'which is better']):
-            intent['query_type'] = 'product_comparison'
-        elif any(term in query_text for term in ['tell me about', 'details of', 'description of', 'specs of', 'specifications of', 'who makes', 'reviews of']):
-            intent['query_type'] = 'product_detail'
-        elif any(term in query_text for term in ['does it have', 'does this product have', 'has bluetooth', 'has touchscreen', 'has ssd', 'has 5g']):
-            intent['query_type'] = 'attribute_query'
-        elif any(term in query_text for term in ['what brand', 'which brand', 'brands do you have', 'laptop brands', 'phone brands', 'brand has the most', 'highest-rated brand']):
-            intent['query_type'] = 'brand_query'
-        elif any(term in query_text for term in ['price of', 'cost of', 'how much is', 'which is cheapest', 'cheapest laptop', 'cheapest phone', 'cheapest product', 'highest price', 'most expensive']):
-            intent['query_type'] = 'price_query'
-        elif any(term in query_text for term in ['what rating', 'highest rating', 'highest rated', 'best rated', 'most reviews']):
-            intent['query_type'] = 'rating_query'
-        elif any(term in query_text for term in ['what is ram', 'what is a laptop', 'what is 5g', 'what is bluetooth']):
-            intent['query_type'] = 'general_question'
-        elif intent.get('max_price') is not None or intent.get('min_price') is not None or intent.get('min_rating') is not None:
-            intent['query_type'] = 'filtering'
-        elif intent.get('use_case'):
-            intent['query_type'] = 'recommendation'
-        elif any(term in query_text for term in ['show me', 'which cameras', 'do you have', 'what laptops', 'find me']):
-            intent['query_type'] = 'product_search'
-
-        intent['keywords'] = list(dict.fromkeys(intent['keywords']))
         return intent
 
     # -------------------------------------------------------------------------
-    # 2.5 SPECIALIZED DATASET & CATALOG QUERY EXECUTORS
+    # 3. STRICT RELEVANCE VALIDATION GATE (Rejection Log & Negative Rules)
     # -------------------------------------------------------------------------
     @classmethod
-    def get_dataset_statistics(cls, query_text):
-        """Query actual dataset statistics from MySQL database."""
-        q_lower = query_text.lower()
-
-        if any(term in q_lower for term in ['how many product', 'total product', 'items available', 'catalog size', 'products available']):
-            total_p = db.session.query(func.count(Product.id)).filter(Product.is_active == True).scalar() or 0
-            return f"Our catalog database currently contains **{total_p:,}** active products across various categories."
-
-        if any(term in q_lower for term in ['how many categor', 'total categor', 'categories do you have', 'categories available']):
-            total_c = db.session.query(func.count(Category.id)).filter(Category.is_active == True).scalar() or 0
-            return f"We have **{total_c}** active product categories available in our database catalog."
-
-        if any(term in q_lower for term in ['average rating', 'avg rating', 'mean rating']):
-            avg_r = db.session.query(func.avg(Product.rating)).filter(Product.is_active == True).scalar() or 0.0
-            return f"The average customer rating across all catalog products in our database is **{float(avg_r):.2f} / 5.0★**."
-
-        if any(term in q_lower for term in ['category has the most', 'largest category', 'biggest category']):
-            top_cat = db.session.query(Category.name, func.count(Product.id).label('total')).join(Product).filter(Product.is_active == True).group_by(Category.name).order_by(db.desc('total')).first()
-            if top_cat:
-                return f"The category with the most products in our dataset is **{top_cat[0]}** with **{top_cat[1]:,}** products."
-
-        if any(term in q_lower for term in ['brand has the most', 'largest brand', 'most products']):
-            top_b = db.session.query(Product.brand, func.count(Product.id).label('total')).filter(Product.is_active == True, Product.brand != '').group_by(Product.brand).order_by(db.desc('total')).first()
-            if top_b:
-                return f"The brand with the most products in our catalog is **{top_b[0]}** with **{top_b[1]:,}** products."
-
-        total_p = db.session.query(func.count(Product.id)).filter(Product.is_active == True).scalar() or 0
-        total_c = db.session.query(func.count(Category.id)).filter(Category.is_active == True).scalar() or 0
-        avg_r = db.session.query(func.avg(Product.rating)).filter(Product.is_active == True).scalar() or 0.0
-        return (
-            f"Here are key catalog dataset statistics from MySQL:\n"
-            f"• **Total Products**: {total_p:,}\n"
-            f"• **Total Categories**: {total_c}\n"
-            f"• **Average Catalog Rating**: {float(avg_r):.2f} / 5.0★"
-        )
-
-    @classmethod
-    def get_brand_statistics(cls, intent, query_text):
-        """Query actual brand information from MySQL database."""
-        q_lower = query_text.lower()
-        p_concept = intent.get('product_type')
-
-        if any(term in q_lower for term in ['highest rated brand', 'best brand', 'highest-rated brand']):
-            q_b = db.session.query(Product.brand, func.avg(Product.rating).label('avgr')).filter(Product.is_active == True, Product.brand != '')
-            if intent.get('category_ids'):
-                q_b = q_b.filter(Product.category_id.in_(intent['category_ids']))
-            top_b = q_b.group_by(Product.brand).having(func.count(Product.id) >= 2).order_by(db.desc('avgr')).first()
-            if top_b:
-                concept_str = f" for {p_concept}s" if p_concept else ""
-                return f"The highest rated brand{concept_str} in our catalog database is **{top_b[0]}** with an average rating of **{float(top_b[1]):.2f}★**."
-
-        q_brands = db.session.query(Product.brand, func.count(Product.id).label('cnt')).filter(Product.is_active == True, Product.brand != '')
-        if intent.get('category_ids'):
-            q_brands = q_brands.filter(Product.category_id.in_(intent['category_ids']))
-        brand_rows = q_brands.group_by(Product.brand).order_by(db.desc('cnt')).limit(10).all()
-
-        if brand_rows:
-            b_list = [f"• **{b[0]}** ({b[1]} products)" for b in brand_rows]
-            concept_str = f" **{p_concept}**" if p_concept else ""
-            return f"Here are popular{concept_str} brands available in our MySQL catalog:\n\n" + "\n".join(b_list)
-
-        return "No specific brand data found matching your query in our catalog."
-
-    @classmethod
-    def get_category_statistics(cls, query_text):
-        """Query actual category metadata from MySQL database."""
-        cats = db.session.query(Category.name, func.count(Product.id).label('cnt')).join(Product).filter(Category.is_active == True, Product.is_active == True).group_by(Category.name).order_by(db.desc('cnt')).all()
-        if cats:
-            cat_list = [f"• **{c[0]}** ({c[1]:,} products)" for c in cats[:12]]
-            return f"Here are active product categories available in our catalog:\n\n" + "\n".join(cat_list)
-        return "No category information found in database."
-
-    @classmethod
-    def generate_product_comparison(cls, products, intent=None):
-        """Build GFM Markdown comparison table for 2 or more products."""
-        if not products or len(products) < 1:
-            return "Please specify products to compare."
-
-        prods = products[:4]
-        cols = [f"**Product {i}**" for i in range(1, len(prods) + 1)]
-        header = "| Attribute | " + " | ".join(cols) + " |"
-        separator = "| --- | " + " | ".join(["---"] * len(cols)) + " |"
-
-        row_name = "| **Name** | " + " | ".join([p.name[:35] for p in prods]) + " |"
-        row_brand = "| **Brand** | " + " | ".join([p.brand for p in prods]) + " |"
-        row_cat = "| **Category** | " + " | ".join([p.category.name if p.category else 'N/A' for p in prods]) + " |"
-        row_price = "| **Price** | " + " | ".join([f"₹{cls.get_normalized_price_inr(p):,.2f}" for p in prods]) + " |"
-        row_rating = "| **Rating** | " + " | ".join([f"{float(p.rating):.1f}★" for p in prods]) + " |"
-
-        table = "\n".join([header, separator, row_name, row_brand, row_cat, row_price, row_rating])
-        return f"Here is a side-by-side comparison based on our MySQL catalog data:\n\n{table}\n\nAll attributes are verified directly from our catalog database."
-
-    @classmethod
-    def generate_product_detail_response(cls, product, query_text):
-        """Synthesize detailed attribute response for a specific product without hallucination."""
+    def validate_product_relevance(cls, product, intent):
+        """
+        Strict validation filter to enforce positive & negative product relevance AND hard budget limits.
+        Returns (is_valid, rejection_reason).
+        """
         if not product:
-            return "Product not found in catalog."
+            return False, "NULL_PRODUCT"
 
-        q_lower = query_text.lower()
-        norm_price = cls.get_normalized_price_inr(product)
-        cat_name = product.category.name if product.category else 'N/A'
-        specs = product.specifications if isinstance(product.specifications, dict) else {}
+        norm_price = float(product.normalized_price_inr)
+        p_name_lower = product.name.lower()
+        cat_id = product.category_id
+        p_type = intent.get('product_type')
+        is_acc_req = intent.get('is_accessory_request', False)
+        is_prim_req = intent.get('is_primary_request', True)
+        target_acc = intent.get('target_accessory')
 
-        if any(term in q_lower for term in ['price of', 'cost of', 'how much']):
-            return f"The price of **{product.name}** is **₹{norm_price:,.2f}**."
+        # 1. HARD BUDGET LIMIT ENFORCEMENT
+        if intent.get('max_price') is not None:
+            if norm_price > float(intent['max_price']):
+                return False, f"BUDGET_EXCEEDED (Price ₹{norm_price:,.2f} > Max ₹{intent['max_price']:,.2f})"
 
-        if any(term in q_lower for term in ['rating', 'review', 'stars']):
-            return f"**{product.name}** has a customer rating of **{float(product.rating):.1f} / 5.0★** in our catalog."
+        if intent.get('min_price') is not None:
+            if norm_price < float(intent['min_price']):
+                return False, f"MIN_PRICE_UNMET (Price ₹{norm_price:,.2f} < Min ₹{intent['min_price']:,.2f})"
 
-        # Feature presence check (e.g. Bluetooth, Touchscreen, SSD, 5G)
-        feature_keywords = ['bluetooth', 'touchscreen', 'ssd', 'camera', 'wireless', '5g', 'hdmi', '4k', 'oled']
-        for feat in feature_keywords:
-            if feat in q_lower:
-                text_to_search = (product.name + ' ' + (product.description or '') + ' ' + json.dumps(specs)).lower()
-                if feat in text_to_search:
-                    return f"Yes! **{product.name}** includes **{feat.upper()}** feature based on our catalog data."
-                else:
-                    return f"I couldn't find {feat.upper()} specification in the available product data for **{product.name}**."
+        # 2. EXPLICIT ACCESSORY REQUEST VALIDATION
+        if is_acc_req and target_acc:
+            if 'bag' in target_acc or 'sleeve' in target_acc or 'backpack' in target_acc:
+                if not (('laptop' in p_name_lower or 'computer' in p_name_lower or 'macbook' in p_name_lower or 'notebook' in p_name_lower) and
+                        ('bag' in p_name_lower or 'backpack' in p_name_lower or 'sleeve' in p_name_lower or 'case' in p_name_lower or 'tote' in p_name_lower)):
+                    return False, "ACCESSORY_MISMATCH (Not a laptop bag/sleeve)"
 
-        specs_formatted = ""
-        if specs:
-            specs_formatted = "\n**Specifications**:\n" + "\n".join([f"• **{k}**: {v}" for k, v in list(specs.items())[:5] if isinstance(v, (str, int, float))])
+            elif 'tripod' in target_acc or 'monopod' in target_acc:
+                if not ('tripod' in p_name_lower or 'monopod' in p_name_lower):
+                    return False, "ACCESSORY_MISMATCH (Not a camera tripod/monopod)"
+                if any(bad in p_name_lower for bad in ['digital camera', 'dslr camera', 'camcorder']):
+                    return False, "ACCESSORY_MISMATCH (Full camera returned for tripod request)"
 
-        desc_str = f"\n**Description**: {product.description[:250]}..." if product.description else ""
+            elif 'case' in target_acc or 'cover' in target_acc:
+                if not (('phone' in p_name_lower or 'iphone' in p_name_lower or 'galaxy' in p_name_lower or 'pixel' in p_name_lower or 'cell' in p_name_lower or 'airpods' in p_name_lower or 'headphone' in p_name_lower or 'earbud' in p_name_lower) and
+                        ('case' in p_name_lower or 'cover' in p_name_lower)):
+                    return False, "ACCESSORY_MISMATCH (Not a case/cover)"
 
-        return (
-            f"### {product.name}\n"
-            f"• **Brand**: {product.brand}\n"
-            f"• **Category**: {cat_name}\n"
-            f"• **Price**: ₹{norm_price:,.2f}\n"
-            f"• **Rating**: {float(product.rating):.1f} / 5.0★\n"
-            f"• **Availability**: {'In Stock (' + str(product.stock_quantity) + ' units)' if product.stock_quantity > 0 else 'In Stock'}"
-            f"{desc_str}"
-            f"{specs_formatted}"
+            elif 'mouse' in target_acc:
+                if not ('mouse' in p_name_lower or 'mice' in p_name_lower):
+                    return False, "ACCESSORY_MISMATCH (Not a computer mouse)"
+                if 'mouse pad' in p_name_lower or 'mousepad' in p_name_lower:
+                    return False, "ACCESSORY_MISMATCH (Mouse pad rejected for mouse request)"
+
+            return True, "VALID_ACCESSORY"
+
+        # 3. PRIMARY DEVICE/ITEM REQUEST VALIDATION & NOISE PURGING
+        if is_prim_req and p_type and p_type in cls.CATEGORY_TAXONOMY:
+            tax_info = cls.CATEGORY_TAXONOMY[p_type]
+            primary_terms = tax_info['primary_terms']
+            disqualifying_accessories = tax_info['disqualifying_accessories']
+
+            # Check disqualifying accessory phrases in product title
+            for dis_acc in disqualifying_accessories:
+                if re.search(r'\b' + re.escape(dis_acc) + r'\b', p_name_lower):
+                    return False, f"ACCESSORY_MISMATCH (Primary request for '{p_type}', rejected accessory phrase '{dis_acc}')"
+
+            # Primary Title Strictness Check
+            has_primary_title = any(re.search(r'\b' + re.escape(pt) + r'\b', p_name_lower) for pt in primary_terms)
+
+            # Category restriction check
+            allowed_cats = tax_info.get('cat_ids', [])
+            if allowed_cats and cat_id not in allowed_cats and not has_primary_title:
+                return False, f"WRONG_CATEGORY (Category ID {cat_id} not in allowed {allowed_cats})"
+
+            if not has_primary_title:
+                return False, f"PRODUCT_TYPE_MISMATCH (Title lacks required primary terms for '{p_type}')"
+
+        # 4. SPECIFIC USE-CASE PRODUCT SANITY CHECKS & STRICT PRIMARY ACCESSORY PURGING
+        if is_prim_req:
+            if p_type == 'mobile':
+                if any(bad in p_name_lower for bad in ['case', 'cover', 'protector', 'tempered glass', 'charger', 'cable', 'mount', 'lanyard', 'holster', 'armband', 'ring holder', 'selfie stick', 'skin', 'replacement battery', 'stylus']):
+                    return False, "ACCESSORY_MISMATCH (Phone accessory rejected for primary phone request)"
+
+            elif p_type == 'headphone':
+                if any(bad in p_name_lower for bad in ['case', 'cover', 'stand', 'holder', 'hanger', 'eartips', 'ear pad', 'cushion', 'cable', 'adapter', 'amp', 'amplifier', 'plug', 'cleaner', 'pouch', 'carrying organizer']):
+                    return False, "ACCESSORY_MISMATCH (Headphone accessory rejected for primary headphone request)"
+
+            elif p_type == 'camera':
+                if any(bad in p_name_lower for bad in ['backdrop', 'background', 'bag', 'case', 'strap', 'tripod', 'monopod', 'lens', 'filter', 'sd card', 'memory card', 'mount', 'bracket', 'cage', 'nvr', 'level', 'screw', 'cap', 'cover', 'holder', 'rubber', 'mask', 'housing', 'plate', 'cable', 'charger', 'battery', 'adapter']):
+                    return False, "ACCESSORY_MISMATCH (Camera accessory rejected for primary camera request)"
+
+            elif p_type == 'watch':
+                if any(bad in p_name_lower for bad in ['band', 'strap', 'watchband', 'bezel', 'screen protector', 'charger', 'cable', 'case', 'stand', 'winder', 'candle', 'lamp']):
+                    return False, "ACCESSORY_MISMATCH (Watch accessory rejected for primary watch request)"
+
+            elif p_type == 'appliance':
+                if any(bad in p_name_lower for bad in ['light', 'bulb', 'handle', 'pull', 'hinge', 'candle', 'wrap', 'organizer', 'magnet', 'cover', 'replacement filter', 'filter', 'mat', 'pad', 'cord']):
+                    return False, "ACCESSORY_MISMATCH (Appliance accessory rejected for primary appliance request)"
+
+        if intent.get('use_case') == 'running' or p_type == 'shoe':
+            running_shoe_terms = ['shoe', 'shoes', 'sneaker', 'sneakers', 'footwear', 'running shoe', 'running shoes', 'athletic shoe', 'athletic shoes', 'jogging shoe', 'walking shoe']
+            if not any(st in p_name_lower for st in running_shoe_terms):
+                return False, "PRODUCT_TYPE_MISMATCH (Not a shoe/footwear)"
+            if any(bad in p_name_lower for bad in ['necklace', 'pendant', 'ring', 'earrings', 'jewelry', 't-shirt', 'socks', 'lace', 'insole', 'sandal', 'sandals', 'slipper', 'slippers', 'pump', 'heels', 'high heel', 'boot', 'boots', 'ankle boot', 'cosplay']):
+                return False, "CROSS_CATEGORY_NOISE (Rejected non-running shoe fashion item)"
+
+        if intent.get('use_case') == 'cooking' or p_type == 'appliance':
+            kitchen_kws = ['mixer', 'blender', 'oven', 'microwave', 'fryer', 'cooker', 'refrigerator', 'fridge', 'toaster', 'kettle', 'cookware', 'pot', 'pan', 'juicer', 'coffee', 'espresso', 'processor', 'dishwasher', 'waffle maker']
+            if cat_id == 10:  # Appliances category
+                if any(bad in p_name_lower for bad in ['light', 'bulb', 'handle', 'pull', 'hinge', 'candle', 'cord wrap', 'cord organizer', 'magnet', 'cover']):
+                    return False, "ACCESSORY_MISMATCH (Appliance accessory rejected)"
+            else:
+                if not any(kk in p_name_lower for kk in kitchen_kws):
+                    return False, "PRODUCT_TYPE_MISMATCH (Not a kitchen appliance)"
+
+        if intent.get('use_case') == 'photography' or p_type == 'camera':
+            if not any(ck in p_name_lower for ck in ['camera', 'dslr', 'camcorder', 'action camera', 'dash cam', 'digital camera', 'vlogging camera', 'mirrorless camera']):
+                return False, "PRODUCT_TYPE_MISMATCH (Not a camera device)"
+            if any(bad in p_name_lower for bad in ['backdrop', 'background', 'bag', 'case', 'strap', 'tripod', 'monopod', 'lens', 'filter', 'sd card', 'cage', 'nvr', 'mount', 'holder', 'cap', 'cover', 'rubber', 'mask', 'housing', 'plate', 'bracket', 'cable', 'charger', 'battery', 'adapter']):
+                return False, "ACCESSORY_MISMATCH (Camera accessory rejected)"
+
+        if intent.get('use_case') == 'programming' or p_type == 'laptop':
+            if not any(lk in p_name_lower for lk in ['laptop', 'notebook', 'macbook', 'chromebook', 'ultrabook', 'aspire', 'ideapad', 'thinkpad', 'pavilion', 'legion', 'zenbook', 'vivobook', 'inspiron', 'latitude', 'convertible', 'xps', 'zephyrus', 'surface pro']):
+                return False, "PRODUCT_TYPE_MISMATCH (Not a laptop computer)"
+            if any(bad in p_name_lower for bad in ['laptop bag', 'laptop backpack', 'laptop sleeve', 'laptop case', 'laptop skin', 'laptop stand', 'laptop charger', 'keyboard cover', 'docking station', 'cooling pad', 'ram compatible', 'charger', 'adapter', 'power cord', 'power cable', 'screen protector', 'decal', 'sticker', 'mount', 'mouse pad', 'mousepad', 'mouse', 'mice', 'keyboard', 'mat', 'replacement battery', 'memory module']):
+                return False, "ACCESSORY_MISMATCH (Laptop accessory rejected)"
+
+        if p_type == 'watch':
+            if not any(wk in p_name_lower for wk in ['watch', 'watches', 'smartwatch', 'smartwatches', 'fitbit', 'timepiece', 'chronograph']):
+                return False, "PRODUCT_TYPE_MISMATCH (Not a wristwatch)"
+            if any(bad in p_name_lower for bad in ['watch band', 'watch strap', 'watchband', 'bezel', 'screen protector', 'watch charger', 'watch case', 'candle']):
+                return False, "ACCESSORY_MISMATCH (Watch accessory rejected)"
+
+        # Purge hardware tools from open-ended gift/college/travel queries
+        if intent.get('use_case') in ['gift', 'college', 'travel', 'gaming']:
+            if any(bad in p_name_lower for bad in ['door lock', 'cylinder lock', 'caulking', 'chemical', 'gasket', 'nozzle tool']):
+                return False, "CROSS_CATEGORY_NOISE (Irrelevant hardware tool rejected)"
+
+        return True, "VALID"
+
+    # -------------------------------------------------------------------------
+    # 4. MULTI-TIER MYSQL PRODUCT RETRIEVAL ENGINE
+    # -------------------------------------------------------------------------
+    @classmethod
+    def retrieve_relevant_products(cls, intent, user_query, limit=8):
+        """
+        Execute SQL search across actual MySQL product catalog:
+        1. Dual-Currency Price Expression Filter.
+        2. Category ID filtering.
+        3. Title-first ILIKE keyword matching.
+        4. Composite Score Ranking.
+        5. Validation Gate with Rejection Logs.
+        """
+        norm_price_expr = case(
+            (and_(Product.category_id > 4, Product.price < 3000.0), Product.price * USD_TO_INR),
+            else_=Product.price
         )
 
+        base_query = Product.query.filter(Product.is_active == True, Product.is_available == True)
+
+        # Apply Price Filters
+        max_p = intent.get('max_price')
+        min_p = intent.get('min_price')
+        if max_p is not None:
+            base_query = base_query.filter(norm_price_expr <= float(max_p))
+        if min_p is not None:
+            base_query = base_query.filter(norm_price_expr >= float(min_p))
+
+        # Apply Rating Filter
+        if intent.get('min_rating') is not None:
+            base_query = base_query.filter(Product.rating >= intent['min_rating'])
+
+        # Apply Brand Filter
+        if intent.get('brand'):
+            base_query = base_query.filter(Product.brand.ilike(f"%{intent['brand']}%"))
+
+        candidates = []
+        cat_ids = intent.get('category_ids', [])
+        search_terms = intent.get('search_terms', [])
+        p_type = intent.get('product_type')
+        is_acc = intent.get('is_accessory_request', False)
+        target_acc = intent.get('target_accessory')
+
+        # Target Title Terms Resolution
+        title_terms = list(search_terms)
+        if p_type and p_type in cls.CATEGORY_TAXONOMY:
+            title_terms.extend(cls.CATEGORY_TAXONOMY[p_type]['primary_terms'][:6])
+
+        if is_acc and target_acc in cls.ACCESSORY_ROUTING:
+            acc_routing = cls.ACCESSORY_ROUTING[target_acc]
+            title_terms = acc_routing['target_terms']
+            cat_ids = acc_routing['cat_ids']
+
+        title_clauses = [Product.name.ilike(f"%{term}%") for term in title_terms if len(term) >= 2]
+
+        # TIER 1: Category ID & Title Terms Match
+        if cat_ids and title_clauses:
+            q_tier1 = base_query.filter(and_(Product.category_id.in_(cat_ids), or_(*title_clauses)))
+            candidates = q_tier1.order_by(Product.rating.desc()).limit(80).all()
+
+        # TIER 2: Title Terms Match across all categories
+        if not candidates and title_clauses:
+            q_tier2 = base_query.filter(or_(*title_clauses))
+            candidates = q_tier2.order_by(Product.rating.desc()).limit(80).all()
+
+        # TIER 3: Category ID match alone if open-ended
+        if not candidates and cat_ids:
+            q_tier3 = base_query.filter(Product.category_id.in_(cat_ids))
+            candidates = q_tier3.order_by(Product.rating.desc()).limit(80).all()
+
+        # TIER 4: Fallback Candidate List
+        if not candidates:
+            candidates = base_query.order_by(Product.rating.desc()).limit(80).all()
+
+        # ---------------------------------------------------------
+        # COMPOSITE RELEVANCE SCORING & REJECTION LOGGING
+        # ---------------------------------------------------------
+        validated_products = []
+        rejected_log = []
+        candidate_log = []
+
+        for p in candidates:
+            candidate_log.append(f"[ID {p.id}] {p.name[:50]}")
+            is_valid, reason = cls.validate_product_relevance(p, intent)
+
+            if not is_valid:
+                rejected_log.append(f"[ID {p.id}] {p.name[:45]} -> REASON: {reason}")
+                continue
+
+            # Compute Composite Relevance Score (4 Tiers)
+            score = float(p.rating or 0.0) * 100.0
+            p_name_lower = p.name.lower()
+            cat_id = p.category_id
+
+            # Tier 1 (+2000 pts): Target Category & Title Match
+            if cat_ids and cat_id in cat_ids:
+                score += 2000.0
+
+            # Tier 2 (+1000 pts): Primary Title Keyword Match
+            if p_type and p_type in cls.CATEGORY_TAXONOMY:
+                prim_kws = cls.CATEGORY_TAXONOMY[p_type]['primary_terms']
+                if any(kw in p_name_lower for kw in prim_kws):
+                    score += 1000.0
+
+            # Tier 3 (+1500 pts): Explicit Accessory Title Match
+            if is_acc and target_acc in cls.ACCESSORY_ROUTING:
+                acc_terms = cls.ACCESSORY_ROUTING[target_acc]['target_terms']
+                if any(at in p_name_lower for at in acc_terms):
+                    score += 1500.0
+
+            # Tier 4 (+300 pts): Brand match
+            if intent.get('brand') and intent['brand'].lower() in p.brand.lower():
+                score += 300.0
+
+            validated_products.append((score, p))
+
+        # Sorting Strategy
+        if intent.get('sort_preference') == 'price_asc':
+            validated_products.sort(key=lambda x: float(x[1].normalized_price_inr))
+        elif intent.get('sort_preference') == 'price_desc':
+            validated_products.sort(key=lambda x: float(x[1].normalized_price_inr), reverse=True)
+        elif intent.get('sort_preference') == 'rating':
+            validated_products.sort(key=lambda x: float(x[1].rating or 0.0), reverse=True)
+        else:
+            validated_products.sort(key=lambda x: x[0], reverse=True)
+
+        final_products = [item[1] for item in validated_products[:limit]]
+
+        # MANDATORY DETAILED DEBUG LOGGING FORMAT
+        logger.info("=" * 60)
+        logger.info(f"[AI QUERY] Original Query: {user_query}")
+        logger.info(f"[AI INTENT] Product Type: {intent.get('product_type')} | Use Case: {intent.get('use_case')} | Max Price: {intent.get('max_price')} | Min Price: {intent.get('min_price')} | Rating Pref: {intent.get('min_rating')} | Is Accessory: {intent.get('is_accessory_request')} (Target: {intent.get('target_accessory')})")
+        logger.info(f"[DATABASE SEARCH] Search Terms: {intent.get('search_terms')} | Target Categories: {intent.get('category_ids')} | Total Candidates: {len(candidates)}")
+        logger.info(f"[CANDIDATE PRODUCTS] Candidates fetched from DB: {len(candidate_log)} items")
+        logger.info(f"[RELEVANCE FILTER] Validated Products: {len(final_products)} | Total Rejected: {len(rejected_log)}")
+        if rejected_log:
+            logger.info(f"[REJECTED PRODUCTS]\n" + "\n".join(rejected_log[:15]))
+        logger.info(f"[FINAL RESULTS] Returned {len(final_products)} products:")
+        for idx, fp in enumerate(final_products, 1):
+            cat_name = fp.category.name if fp.category else 'N/A'
+            logger.info(f"   {idx}. [ID {fp.id}] {fp.name[:60]} | Cat: {cat_name} | Price: ₹{fp.normalized_price_inr:,.2f} | Rating: {fp.rating}")
+        logger.info("=" * 60)
+
+        # Print to console for real-time terminal output safely
+        try:
+            print(f"\n[AI QUERY] {user_query}")
+            print(f"[AI INTENT] Product Type: {intent.get('product_type')}, Use Case: {intent.get('use_case')}, Max Price: {intent.get('max_price')}, Is Accessory: {intent.get('is_accessory_request')}")
+            print(f"[DATABASE SEARCH] Candidates: {len(candidates)} -> Validated: {len(final_products)} (Rejected: {len(rejected_log)})")
+        except Exception:
+            pass
+
+        return final_products
+
+    # -------------------------------------------------------------------------
+    # 5. SPECIALIZED DATASET EXECUTORS & HELPER METHODS
+    # -------------------------------------------------------------------------
     @classmethod
-    def generate_general_explanation(cls, query_text):
-        """Provide clear natural educational explanations for non-dataset general concept questions."""
-        q_lower = query_text.lower()
-        if 'ram' in q_lower:
-            return "RAM (Random Access Memory) is a computer's short-term memory used to store data that the processor needs quickly while running apps and multitasking."
-        if 'laptop' in q_lower:
-            return "A laptop is a portable personal computer with an integrated screen, keyboard, and rechargeable battery designed for mobile work and entertainment."
-        if 'bluetooth' in q_lower:
-            return "Bluetooth is a short-range wireless technology standard used for exchanging data between fixed and mobile devices over short distances."
-        return "This is a general computer concept. Feel free to ask about available products in our catalog!"
-
-    @classmethod
-    def _quick_parse_concepts(cls, text):
-        """Helper to parse concept, primary flag, and budget from historical query string."""
-        text_lower = text.lower()
-        res = {'product_type': None, 'is_primary_request': False, 'max_price': None}
-        is_acc = any(re.search(r'\b' + re.escape(acc) + r's?\b', text_lower) for acc in cls.ALL_ACCESSORY_TERMS)
-
-        for concept, data in cls.SEMANTIC_CONCEPT_MAP.items():
-            for t in data.get('primary_types', []):
-                if re.search(r'\b' + re.escape(t) + r's?\b', text_lower):
-                    res['product_type'] = concept
-                    res['is_primary_request'] = not is_acc
-                    break
-            if res['product_type']:
-                break
-
-        b_match = re.search(r'(?:under|below|less than|within|max|up to|budget of|around|spend)\s*₹?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(k|thousand|lakh)?', text_lower)
-        if not b_match:
-            b_match = re.search(r'(\d+)\s*(?:k|thousand)\s*(?:rupees|rs|inr)?', text_lower)
-        if b_match:
-            raw_num = b_match.group(1).replace(',', '')
-            multiplier = b_match.group(2) if len(b_match.groups()) > 1 else None
-            try:
-                val = float(raw_num)
-                if multiplier in ['k', 'thousand']:
-                    val *= 1000
-                elif multiplier == 'lakh':
-                    val *= 100000
-                res['max_price'] = val
-            except ValueError:
-                pass
-
-        return res
+    def _quick_parse_intent(cls, text):
+        """Helper to parse intent from historical query string for multi-turn context."""
+        return cls.extract_user_intent(text)
 
     @staticmethod
     def _parse_number_str(val_str):
-        """Helper to parse strings like '20k', '50000', '15' into float."""
+        """Helper to parse numeric budget strings like '20k', '50000', '15'."""
         val_str = val_str.lower().strip().replace('₹', '').replace(',', '')
         if val_str.endswith('k'):
             try:
@@ -597,304 +635,58 @@ class AIService:
             return None
 
     @classmethod
-    def get_normalized_price_inr(cls, product):
-        """
-        Unified price normalizer: Converts USD prices to INR for imported Amazon dataset products.
-        Seed products (Category IDs 1-4) or items with raw price >= 3000 are in INR.
-        Imported products (Category IDs 5-39 with raw price < 3000) are in USD -> price * 83.0.
-        """
-        if not product or product.price is None:
-            return 0.0
-        raw_price = float(product.price)
-        cat_id = product.category_id or 0
-        if cat_id <= 4 or raw_price >= 3000.0:
-            return raw_price
-        return raw_price * USD_TO_INR
+    def get_dataset_statistics(cls, query_text):
+        """Query actual dataset statistics from MySQL database."""
+        q_lower = query_text.lower()
+        if any(term in q_lower for term in ['how many product', 'total product', 'items available', 'catalog size', 'products available']):
+            total_p = db.session.query(func.count(Product.id)).filter(Product.is_active == True).scalar() or 0
+            return f"Our catalog database currently contains **{total_p:,}** active products across 39 product categories."
+
+        total_p = db.session.query(func.count(Product.id)).filter(Product.is_active == True).scalar() or 0
+        total_c = db.session.query(func.count(Category.id)).filter(Category.is_active == True).scalar() or 0
+        avg_r = db.session.query(func.avg(Product.rating)).filter(Product.is_active == True).scalar() or 0.0
+        return (
+            f"Here are key catalog dataset statistics from MySQL:\n"
+            f"• **Total Products**: {total_p:,}\n"
+            f"• **Total Categories**: {total_c}\n"
+            f"• **Average Catalog Rating**: {float(avg_r):.2f} / 5.0★"
+        )
 
     @classmethod
-    def validate_product_relevance(cls, product, intent):
+    def generate_product_comparison(cls, products):
         """
-        Final validation filter to enforce positive & negative product relevance AND strict budget limits.
-        Guarantees that accessories/unrelated items and products exceeding max_price are strictly purged.
+        Generate a side-by-side comparison table formatted string for a list of products.
         """
-        if not product:
-            return False
-
-        p_name_lower = product.name.lower()
-        cat_name = product.category.name if product.category else ''
-        p_concept = intent.get('product_type')
-        is_acc_req = intent.get('is_accessory_request', False)
-        is_prim_req = intent.get('is_primary_request', False)
-
-        # 1. HARD BUDGET ENFORCEMENT
-        norm_price = cls.get_normalized_price_inr(product)
-        if intent.get('max_price') is not None:
-            if norm_price > float(intent['max_price']):
-                return False  # HARD REJECT IF NORMALIZED PRICE EXCEEDS EXPLICIT BUDGET!
-
-        if intent.get('min_price') is not None:
-            if norm_price < float(intent['min_price']):
-                return False
-
-        # 2. Primary Product Relevance Enforcement
-        if is_prim_req and p_concept and p_concept in cls.SEMANTIC_CONCEPT_MAP:
-            concept_info = cls.SEMANTIC_CONCEPT_MAP[p_concept]
-            prim_kws = concept_info.get('primary_keywords', [])
-            prim_types = concept_info.get('primary_types', [])
-
-            has_primary_identity = any(re.search(r'\b' + re.escape(pk) + r's?\b', p_name_lower) for pk in (prim_kws + prim_types))
-
-            # REJECT if product is outside primary category AND does not explicitly state primary product identity
-            prim_cats = concept_info.get('primary_categories', [])
-            if prim_cats and cat_name not in prim_cats and not has_primary_identity:
-                return False
-
-            acc_list = concept_info.get('accessories', []) + cls.ALL_ACCESSORY_TERMS
-            acc_list_filtered = [acc for acc in acc_list if acc not in prim_kws and acc not in prim_types]
-
-            # If product explicitly has primary identity (e.g. "Acer Aspire Laptop 8GB RAM"), do not reject because of embedded spec words or bundle phrases
-            if has_primary_identity:
-                spec_words = ['ram', 'memory', 'display', 'screen', 'lcd', 'drive', 'battery', 'portable', 'accessory', 'accessories']
-                acc_list_filtered = [acc for acc in acc_list_filtered if acc not in spec_words]
-
-            # REJECT if product name contains any accessory term
-            for acc in acc_list_filtered:
-                if re.search(r'\b' + re.escape(acc) + r's?\b', p_name_lower):
-                    return False
-
-        # 3. Explicit Accessory Request Enforcement
-        elif is_acc_req:
-            target_acc = intent.get('target_accessory')
-            if target_acc and not re.search(r'\b' + re.escape(target_acc) + r's?\b', p_name_lower):
-                return False
-
-        return True
-
-    # -------------------------------------------------------------------------
-    # 3. MULTI-LEVEL DATABASE RETRIEVAL ENGINE
-    # -------------------------------------------------------------------------
-    @classmethod
-    def retrieve_relevant_products(cls, intent, user_query, limit=8):
-        """
-        Execute multi-level SQLAlchemy retrieval strategy:
-        LEVEL 1: Category ID & Primary Product Name filtering.
-        LEVEL 2: Description text ILIKE matching.
-        LEVEL 3: Specifications JSON text matching.
-        LEVEL 4: Semantic term expansion.
-        LEVEL 5: Budget & Rating filtering (with strict INR/USD dual-currency normalization).
-        LEVEL 6: Candidate scoring & relevance validation.
-        """
-        query_text = user_query.strip().lower()
-
-        # Debug Logging
-        logger.info("=" * 60)
-        logger.info(f"[AI PIPELINE LOG] Original User Query: {user_query}")
-        logger.info(f"[AI PIPELINE LOG] Extracted Intent: product_type={intent.get('product_type')}, is_primary_req={intent.get('is_primary_request')}, is_accessory_req={intent.get('is_accessory_request')}, target_accessory={intent.get('target_accessory')}, budget_max={intent.get('max_price')}, categories={intent.get('category_names')}")
-        logger.info(f"[AI PIPELINE LOG] Keywords: {intent.get('keywords')}")
-
-        # Base active product query
-        base_query = Product.query.filter(Product.is_active == True, Product.is_available == True)
-
-        # ---------------------------------------------------------
-        # LEVEL 1 & LEVEL 5: Apply Category & Price Filters
-        # ---------------------------------------------------------
-        q = base_query
-
-        # Apply Category Filter if available (Indexed!)
-        if intent.get('category_ids'):
-            q = q.filter(Product.category_id.in_(intent['category_ids']))
-
-        # Apply Strict Dual-Currency Price Filter
-        max_p = intent.get('max_price')
-        min_p = intent.get('min_price')
-
-        if max_p is not None:
-            usd_max = max_p / USD_TO_INR
-            q = q.filter(
-                or_(
-                    and_(Product.category_id <= 4, Product.price <= max_p),
-                    and_(Product.category_id > 4, Product.price <= usd_max)
-                )
-            )
-
-        if min_p is not None:
-            usd_min = min_p / USD_TO_INR
-            q = q.filter(
-                or_(
-                    and_(Product.category_id <= 4, Product.price >= min_p),
-                    and_(Product.category_id > 4, Product.price >= usd_min)
-                )
-            )
-
-        # Apply Rating Filter
-        if intent.get('min_rating') is not None:
-            q = q.filter(Product.rating >= intent['min_rating'])
-
-        # Apply Brand Filter
-        if intent.get('brand'):
-            q = q.filter(Product.brand.ilike(f"%{intent['brand']}%"))
-
-        # HARD SQL EXCLUSION of Accessories when user explicitly asks for a primary product
-        if intent.get('is_primary_request') and intent.get('product_type') and intent['product_type'] in cls.SEMANTIC_CONCEPT_MAP:
-            concept_info = cls.SEMANTIC_CONCEPT_MAP[intent['product_type']]
-            acc_list = concept_info.get('accessories', [])
-            for acc_term in acc_list[:8]:
-                q = q.filter(~Product.name.ilike(f"%{acc_term}%"))
-
-        # ---------------------------------------------------------
-        # LEVEL 2 & 3: Keyword Search across Name & Description
-        # ---------------------------------------------------------
-        query_words = [w for w in user_query.lower().split() if len(w) >= 3 and w not in ['show', 'tell', 'about', 'with', 'from', 'have', 'this', 'product', 'that', 'what', 'which', 'laptop', 'phone', 'price']]
-        keywords = intent.get('keywords', [])
-        candidates = []
-
-        or_clauses = []
-        for qw in query_words:
-            term = f"%{qw}%"
-            or_clauses.append(Product.name.ilike(term))
-
-        for kw in keywords[:5]:
-            term = f"%{kw}%"
-            or_clauses.append(Product.name.ilike(term))
-            or_clauses.append(Product.description.ilike(term))
-
-        if or_clauses:
-            kw_query = q.filter(or_(*or_clauses)).order_by(Product.rating.desc())
-            candidates = kw_query.limit(50).all()
-
-        if not candidates:
-            candidates = q.order_by(Product.rating.desc()).limit(40).all()
-
-        # ---------------------------------------------------------
-        # NO-RESULT FALLBACK (STRICT BUDGET PRESERVATION)
-        # ---------------------------------------------------------
-        if not candidates:
-            logger.info("[AI PIPELINE LOG] Strict query produced 0 matches.")
-            intent['relaxed_search'] = True
-
-            # DO NOT expand max_price budget if explicitly specified!
-            if max_p is None:
-                q_relaxed = base_query
-                if intent.get('category_ids'):
-                    q_relaxed = q_relaxed.filter(Product.category_id.in_(intent['category_ids']))
-                candidates = q_relaxed.order_by(Product.rating.desc()).limit(30).all()
-
-        # ---------------------------------------------------------
-        # LEVEL 6: Scoring & Composite Ranking Strategy
-        # ---------------------------------------------------------
-        scored_products = []
-        for p in candidates:
-            score = float(p.rating or 0.0) * 20.0
-
-            p_name_lower = p.name.lower()
-            cat_name = p.category.name if p.category else ''
-            norm_p = cls.get_normalized_price_inr(p)
-
-            p_concept = intent.get('product_type')
-            concept_info = cls.SEMANTIC_CONCEPT_MAP.get(p_concept, {}) if p_concept else {}
-
-            # Primary Category Boost (+500 points)
-            prim_cats = concept_info.get('primary_categories', [])
-            if prim_cats and cat_name in prim_cats:
-                score += 500.0
-
-            # Boost for primary product keyword in name (+300 points)
-            if p_concept:
-                prim_kws = concept_info.get('primary_keywords', [])
-                if any(kw in p_name_lower for kw in prim_kws):
-                    score += 300.0
-
-            # Massive Penalty for Accessories if user requested a primary product
-            if intent.get('is_primary_request') and p_concept:
-                acc_list = concept_info.get('accessories', []) + cls.ALL_ACCESSORY_TERMS
-                if any(acc in p_name_lower for acc in acc_list):
-                    score -= 10000.0
-
-            # Boost for explicit accessory match if accessory requested
-            if intent.get('is_accessory_request'):
-                target_acc = intent.get('target_accessory')
-                if target_acc and target_acc in p_name_lower:
-                    score += 500.0
-
-            # Boost for use-case keyword matches
-            if intent.get('use_case'):
-                use_kws = cls.USE_CASE_MAP.get(intent['use_case'], {}).get('keywords', [])
-                for ukw in use_kws:
-                    if ukw in p_name_lower:
-                        score += 20.0
-
-            # Boost for brand match
-            if intent.get('brand') and intent['brand'].lower() in p.brand.lower():
-                score += 30.0
-
-            # Boost for specific model tokens in query (e.g. "envy", "x360", "legion", "aspire")
-            q_tokens = [w for w in query_text.lower().split() if len(w) >= 3 and w not in ['tell', 'about', 'show', 'the', 'what', 'price', 'laptop', 'phone', 'does', 'have', 'with', 'for', 'which', 'product', 'has', 'most', 'best']]
-            for qt in q_tokens:
-                if qt in p_name_lower:
-                    score += 1000.0
-
-            scored_products.append((score, p))
-
-        # Filter candidate list using validate_product_relevance (Strict Budget & Relevance Gate)
-        valid_scored = [item for item in scored_products if cls.validate_product_relevance(item[1], intent)]
-
-        # Sort candidate list by computed score DESC or user sort preference
-        if intent.get('sort_preference') == 'price_asc':
-            valid_scored.sort(key=lambda x: cls.get_normalized_price_inr(x[1]))
-        elif intent.get('sort_preference') == 'price_desc':
-            valid_scored.sort(key=lambda x: cls.get_normalized_price_inr(x[1]), reverse=True)
-        else:
-            valid_scored.sort(key=lambda x: x[0], reverse=True)
-
-        final_products = [item[1] for item in valid_scored[:limit]]
-
-        logger.info(f"[AI PIPELINE LOG] Total Candidates: {len(candidates)} | Valid Products Returned: {len(final_products)}")
-        for idx, fp in enumerate(final_products, 1):
-            fp_norm = cls.get_normalized_price_inr(fp)
-            logger.info(f"   {idx}. [ID {fp.id}] {fp.name} | Category: {fp.category.name if fp.category else 'N/A'} | Price: ₹{fp_norm:,.2f} | Rating: {float(fp.rating):.1f}★")
-        logger.info("=" * 60)
-
-        return final_products
-
-    # -------------------------------------------------------------------------
-    # 4. STRUCTURED CONTEXT BUILDER FOR GEMINI
-    # -------------------------------------------------------------------------
-    @staticmethod
-    def build_structured_context(products):
-        """Build clean structured text context from database products for Gemini prompt."""
         if not products:
-            return "NO MATCHING PRODUCTS FOUND IN CATALOG DATABASE."
+            return "No products available for comparison."
 
-        catalog_entries = []
-        for index, p in enumerate(products, 1):
-            category_name = p.category.name if p.category else "General"
-            specs = json.dumps(p.specifications) if isinstance(p.specifications, dict) else (p.specifications or "N/A")
-            norm_p = AIService.get_normalized_price_inr(p)
-            catalog_entries.append(
-                f"{index}. Product ID: {p.id}\n"
-                f"   Name: {p.name}\n"
-                f"   Brand: {p.brand}\n"
-                f"   Category: {category_name}\n"
-                f"   Price: ₹{norm_p:,.2f}\n"
-                f"   Rating: {float(p.rating):.1f} / 5.0\n"
-                f"   In Stock: {'Yes (' + str(p.stock_quantity) + ' units)' if p.stock_quantity > 0 else 'No'}\n"
-                f"   Description: {p.description or 'N/A'}\n"
-                f"   Key Specifications: {specs}\n"
-            )
-        return "\n".join(catalog_entries)
+        headers = ["Attribute"] + [f"{p.name[:30]}..." for p in products]
+        rows = [
+            ["Price (INR)"] + [f"₹{p.normalized_price_inr:,.2f}" for p in products],
+            ["Brand"] + [p.brand for p in products],
+            ["Rating"] + [f"{float(p.rating):.1f}★" for p in products],
+            ["Category"] + [(p.category.name if p.category else "General") for p in products]
+        ]
+
+        table_str = "| " + " | ".join(headers) + " |\n"
+        table_str += "| " + " | ".join(["---"] * len(headers)) + " |\n"
+        for r in rows:
+            table_str += "| " + " | ".join(r) + " |\n"
+
+        return table_str
 
     # -------------------------------------------------------------------------
-    # 5. NATURAL RESPONSE GENERATION & GEMINI INTEGRATION
+    # 6. AI RESPONSE GENERATION & GEMINI INTEGRATION
     # -------------------------------------------------------------------------
     @classmethod
     def generate_ai_response(cls, user_query, user_id=None, conversation_history=None):
         """
         Main entry point for AI recommendations:
-        1. Extract natural language intent (with conversation history context)
-        2. Query MySQL database for matching products via multi-level retrieval
+        1. Extract natural language intent (incorporating conversation history context)
+        2. Query MySQL database for matching products via multi-tier retrieval engine
         3. Build structured catalog context
-        4. Call Gemini API for response synthesis OR generate natural fallback response
-        5. Return clean structured response dictionary
+        4. Call Gemini API for response synthesis OR generate local natural response
+        5. Return response dictionary
         """
         user_query_clean = user_query.strip()
         if not user_query_clean:
@@ -909,42 +701,11 @@ class AIService:
         intent = cls.extract_user_intent(user_query_clean, conversation_history=conversation_history)
         q_type = intent.get('query_type', 'general')
 
-        # Handler A: Dataset Statistics Queries
+        # Dataset queries
         if q_type == 'dataset_query':
-            stat_res = cls.get_dataset_statistics(user_query_clean)
             return {
                 'success': True,
-                'ai_response': stat_res,
-                'recommended_products': [],
-                'intent': q_type
-            }
-
-        # Handler B: Category Statistics Queries
-        if q_type == 'category_query':
-            cat_res = cls.get_category_statistics(user_query_clean)
-            return {
-                'success': True,
-                'ai_response': cat_res,
-                'recommended_products': [],
-                'intent': q_type
-            }
-
-        # Handler C: Brand Statistics Queries (when no specific product search requested)
-        if q_type == 'brand_query' and not intent.get('product_type') and not intent.get('brand'):
-            brand_res = cls.get_brand_statistics(intent, user_query_clean)
-            return {
-                'success': True,
-                'ai_response': brand_res,
-                'recommended_products': [],
-                'intent': q_type
-            }
-
-        # Handler D: General Educational Concept Questions
-        if q_type == 'general_question':
-            gen_res = cls.generate_general_explanation(user_query_clean)
-            return {
-                'success': True,
-                'ai_response': gen_res,
+                'ai_response': cls.get_dataset_statistics(user_query_clean),
                 'recommended_products': [],
                 'intent': q_type
             }
@@ -952,34 +713,10 @@ class AIService:
         # Step 2: Retrieve products from MySQL catalog
         products = cls.retrieve_relevant_products(intent, user_query_clean)
 
-        # Handler E: Product Comparison Queries
-        if q_type == 'product_comparison' and len(products) >= 2:
-            comp_res = cls.generate_product_comparison(products, intent=intent)
-            return {
-                'success': True,
-                'ai_response': comp_res,
-                'recommended_products': products[:4],
-                'intent': q_type
-            }
-
-        # Handler F: Specific Product Detail or Attribute Queries
-        if q_type in ['product_detail', 'attribute_query'] and products:
-            detail_res = cls.generate_product_detail_response(products[0], user_query_clean)
-            return {
-                'success': True,
-                'ai_response': detail_res,
-                'recommended_products': products[:1],
-                'intent': q_type
-            }
-
-        product_context = cls.build_structured_context(products)
-
-        # Check API key configuration
         api_key = cls.get_api_key()
 
-        # If Gemini API Key is NOT configured, build natural AI response locally using actual DB products
+        # Local natural AI response synthesis when Gemini API key is absent
         if not api_key:
-            logger.info("GEMINI_API_KEY is not configured. Generating natural response from MySQL products...")
             ai_text = cls._generate_local_natural_response(user_query_clean, intent, products)
             return {
                 'success': True,
@@ -988,17 +725,16 @@ class AIService:
                 'intent': q_type
             }
 
-        # Step 2: Formulate Gemini System Prompt & Context
+        # Gemini Prompt Formulation
+        catalog_context = cls.build_structured_context(products)
         system_prompt = (
             "You are the 'AI Shopping Assistant' for an e-commerce platform.\n"
             "Your objective is to provide helpful, polite, and natural shopping recommendations.\n\n"
             "STRICT RULES:\n"
             "1. ONLY recommend products explicitly listed in the DATABASE CATALOG CONTEXT provided below.\n"
             "2. NEVER fabricate or invent product names, prices, specs, ratings, or availability.\n"
-            "3. If constraints were relaxed because exact criteria couldn't be met, explain politely and highlight closest alternatives.\n"
-            "4. NEVER display internal database category names (like 'Cell Phones & Accessories' or 'category_id') to the user. Use natural English.\n"
-            "5. Format product recommendations cleanly with Bullet points, Name, Price (in ₹), Rating, and a brief natural explanation of why it fits their request.\n"
-            "6. Always be natural, helpful, and conversational.\n"
+            "3. Format product recommendations cleanly with Bullet points, Name, Price (in ₹), Rating, and a brief explanation of why it fits their request.\n"
+            "4. Be conversational, helpful, and clear.\n"
         )
 
         history_text = ""
@@ -1012,13 +748,12 @@ class AIService:
             f"{history_text}\n"
             f"DATABASE CATALOG CONTEXT:\n"
             f"=======================\n"
-            f"{product_context}\n"
+            f"{catalog_context}\n"
             f"=======================\n\n"
             f"USER QUESTION: {user_query_clean}\n\n"
             f"ASSISTANT RESPONSE:"
         )
 
-        # Step 3: Call Gemini API with model fallback
         try:
             genai.configure(api_key=api_key)
             model_names = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
@@ -1034,10 +769,8 @@ class AIService:
                         break
                 except Exception as ex:
                     last_err = ex
-                    logger.info(f"Model {m_name} failed: {str(ex)}. Trying next model...")
 
             if not ai_text:
-                logger.error(f"Gemini API call failed: {str(last_err)}. Falling back to local natural response.")
                 ai_text = cls._generate_local_natural_response(user_query_clean, intent, products)
 
             return {
@@ -1057,50 +790,67 @@ class AIService:
                 'intent': intent.get('query_type', 'general')
             }
 
+    @staticmethod
+    def build_structured_context(products):
+        """Build clean text context from database products for Gemini prompt."""
+        if not products:
+            return "NO MATCHING PRODUCTS FOUND IN CATALOG DATABASE."
+
+        catalog_entries = []
+        for index, p in enumerate(products, 1):
+            category_name = p.category.name if p.category else "General"
+            specs = json.dumps(p.specifications) if isinstance(p.specifications, dict) else (p.specifications or "N/A")
+            catalog_entries.append(
+                f"{index}. Product ID: {p.id}\n"
+                f"   Name: {p.name}\n"
+                f"   Brand: {p.brand}\n"
+                f"   Category: {category_name}\n"
+                f"   Price: ₹{p.normalized_price_inr:,.2f}\n"
+                f"   Rating: {float(p.rating):.1f} / 5.0\n"
+                f"   In Stock: {'Yes (' + str(p.stock_quantity) + ' units)' if p.stock_quantity > 0 else 'No'}\n"
+                f"   Description: {p.description or 'N/A'}\n"
+                f"   Key Specifications: {specs}\n"
+            )
+        return "\n".join(catalog_entries)
+
     @classmethod
     def _generate_local_natural_response(cls, user_query, intent, products):
         """
-        Generate natural language AI response without exposing database terms.
-        Used when Gemini API Key is absent or as a fast response synthesizer.
+        Generate natural language AI response locally when Gemini API key is absent.
         """
         if not products:
             p_type = intent.get('product_type') or "item"
             max_p = intent.get('max_price')
             if max_p:
                 return f"I couldn't find a matching **{p_type}** under **₹{max_p:,.0f}** in our catalog database. Would you like to adjust your budget or search for top-rated alternatives?"
-            return "I couldn't find a matching product in our current catalog. Try adjusting your budget or asking for a different item."
+            return "I couldn't find a matching product in our catalog for your exact request. Try adjusting your query or budget!"
 
         intro = ""
         p_type = intent.get('product_type') or "products"
         use_c = intent.get('use_case')
         max_p = intent.get('max_price')
+        is_acc = intent.get('is_accessory_request')
+        target_acc = intent.get('target_accessory')
 
-        if intent.get('relaxed_search'):
-            intro = f"I couldn't find an exact match matching all strict criteria, but I found these top-rated {p_type} options close to your request:"
+        if is_acc and target_acc:
+            intro = f"Here are relevant **{target_acc}** options for your request from our catalog:"
         elif use_c and max_p:
             intro = f"Here are great options for **{use_c.replace('_', ' ')}** under **₹{max_p:,.0f}** from our catalog:"
         elif use_c:
             intro = f"Here are top-rated recommendations for **{use_c.replace('_', ' ')}** from our catalog:"
         elif max_p:
-            intro = f"Here are the best **{p_type}** options under **₹{max_p:,.0f}**:"
+            intro = f"Here are the best **{p_type}** options under **₹{max_p:,.0f}** from our catalog:"
         elif intent.get('min_rating'):
-            intro = f"Here are highly rated **{p_type}** options with excellent reviews:"
+            intro = f"Here are highly rated **{p_type}** options with excellent reviews from our catalog:"
         else:
-            intro = f"Based on your query, here are top recommendations from our catalog:"
+            intro = f"Based on your query, here are relevant product recommendations from our MySQL catalog:"
 
         items_summary = []
         for p in products[:5]:
-            specs_str = ""
-            if isinstance(p.specifications, dict):
-                first_few = [f"{k}: {v}" for k, v in list(p.specifications.items())[:2] if isinstance(v, str)]
-                if first_few:
-                    specs_str = f" ({', '.join(first_few)})"
-
-            norm_price = cls.get_normalized_price_inr(p)
+            cat_name = p.category.name if p.category else 'N/A'
             items_summary.append(
-                f"• **{p.name}** ({p.brand}) - **₹{norm_price:,.2f}** | Rating: **{float(p.rating):.1f}★**{specs_str}"
+                f"• **{p.name}** ({p.brand}) - **₹{p.normalized_price_inr:,.2f}** | Rating: **{float(p.rating):.1f}★** (Category: {cat_name})"
             )
 
         summary_text = "\n".join(items_summary)
-        return f"{intro}\n\n{summary_text}\n\nClick on any product card below to view details or add to your cart!"
-
+        return f"{intro}\n\n{summary_text}\n\nClick on any product card below to view details or add it to your cart!"

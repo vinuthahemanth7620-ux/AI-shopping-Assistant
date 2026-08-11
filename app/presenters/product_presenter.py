@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urlencode
 
 
@@ -9,6 +10,31 @@ class ProductPresenter:
     """
 
     DEFAULT_IMAGE = "/static/images/placeholder_product.png"
+
+    @classmethod
+    def clean_image_url(cls, raw_url):
+        """Clean and normalize image URLs, handling markdown syntax and placeholders."""
+        if not raw_url:
+            return cls.DEFAULT_IMAGE
+        
+        url_str = str(raw_url).strip()
+        if not url_str:
+            return cls.DEFAULT_IMAGE
+
+        # Extract URL from Markdown link/image format [url](url) or ![alt](url)
+        md_match = re.search(r'\((https?://[^\)]+)\)', url_str)
+        if md_match:
+            return md_match.group(1).strip()
+
+        # Extract HTTP/HTTPS URL from bracket syntax [http...]
+        bracket_match = re.search(r'https?://[^\s\]\)\"\']+', url_str)
+        if bracket_match:
+            return bracket_match.group(0).strip()
+
+        if not (url_str.startswith('http://') or url_str.startswith('https://') or url_str.startswith('/')):
+            return f"/{url_str}"
+
+        return url_str
 
     @classmethod
     def get_normalized_price_inr(cls, product_or_price, category_id=None):
@@ -72,9 +98,7 @@ class ProductPresenter:
         if not product:
             return None
 
-        image_url = product.image_url.strip() if product.image_url else None
-        if image_url and not (image_url.startswith('http://') or image_url.startswith('https://') or image_url.startswith('/')):
-            image_url = f"/{image_url}"
+        image_url = cls.clean_image_url(product.image_url)
 
         desc = product.description or ""
         short_desc = (desc[:115] + '...') if len(desc) > 115 else desc

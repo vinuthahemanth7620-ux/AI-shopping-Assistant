@@ -219,14 +219,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const ratingVal = product.rating ? (product.rating.value || product.rating) : '0.0';
         const imgUrl = product.image_url || '/static/images/placeholder_product.png';
         const detailUrl = `/products/${product.id}`;
+        const prodName = escapeHTML(product.name);
 
         return `
             <div class="col">
                 <div class="card h-100 border shadow-sm rounded-3 overflow-hidden bg-white hover-shadow transition-all">
                     <div class="row g-0 align-items-center p-2">
-                        <div class="col-4 text-center bg-light p-2 rounded-2">
+                        <div class="col-4 text-center bg-light p-2 rounded-2" style="height: 100px;">
                             <a href="${detailUrl}">
-                                <img src="${imgUrl}" alt="${escapeHTML(product.name)}" class="img-fluid rounded" style="max-height: 90px; object-fit: contain;" onerror="this.src='https://via.placeholder.com/150';">
+                                <img src="${imgUrl}" alt="${prodName}" class="img-fluid rounded h-100 object-fit-contain" onerror="this.src='https://via.placeholder.com/150';">
                             </a>
                         </div>
                         <div class="col-8 ps-3">
@@ -234,18 +235,114 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <span class="badge bg-light text-primary border me-1 small">${escapeHTML(product.brand || 'Brand')}</span>
                                 <span class="badge bg-warning text-dark small fw-bold"><i class="fa-solid fa-star me-1"></i>${ratingVal}</span>
                             </div>
-                            <h6 class="card-title fs-6 mb-1 mt-1 text-truncate" title="${escapeHTML(product.name)}">
-                                <a href="${detailUrl}" class="text-dark text-decoration-none fw-bold">${escapeHTML(product.name)}</a>
+                            <h6 class="card-title fs-6 mb-1 mt-1 text-truncate" title="${prodName}">
+                                <a href="${detailUrl}" class="text-dark text-decoration-none fw-bold">${prodName}</a>
                             </h6>
-                            <div class="fw-bold text-success mb-2">${product.price_formatted || ('₹' + product.price_raw)}</div>
-                            <a href="${detailUrl}" class="btn btn-sm btn-outline-primary rounded-pill w-100 py-1 fw-semibold">
-                                View Details <i class="fa-solid fa-chevron-right ms-1 small"></i>
-                            </a>
+                            <div class="fw-bold text-success mb-2">${product.price_formatted || ('₹' + (product.price_raw || 0))}</div>
+                            <div class="d-flex gap-1">
+                                <button type="button" class="btn btn-sm btn-primary rounded-pill flex-fill py-1 fw-semibold add-to-cart-ai-btn" data-product-id="${product.id}" data-product-name="${prodName}">
+                                    <i class="fa-solid fa-cart-shopping me-1"></i> Cart
+                                </button>
+                                <a href="${detailUrl}" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-2 fw-semibold text-center" title="View Details">
+                                    <i class="fa-solid fa-chevron-right"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         `;
+    }
+
+    // Attach delegated click listener for AI product card "Add to Cart" buttons
+    if (chatMessages) {
+        chatMessages.addEventListener('click', function (e) {
+            const btn = e.target.closest('.add-to-cart-ai-btn');
+            if (!btn) return;
+
+            e.preventDefault();
+            const productId = btn.getAttribute('data-product-id');
+            const productName = btn.getAttribute('data-product-name') || 'Product';
+            const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
+
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Adding...`;
+
+            fetch(`/cart/add/${productId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ quantity: 1 })
+            })
+            .then(res => {
+                if (res.status === 401 || res.redirected) {
+                    window.location.href = '/auth/login';
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
+                btn.disabled = false;
+                btn.className = 'btn btn-sm btn-success rounded-pill flex-fill py-1 fw-semibold add-to-cart-ai-btn';
+                btn.innerHTML = `<i class="fa-solid fa-check me-1"></i> Added!`;
+                
+                setTimeout(() => {
+                    btn.className = 'btn btn-sm btn-primary rounded-pill flex-fill py-1 fw-semibold add-to-cart-ai-btn';
+                    btn.innerHTML = `<i class="fa-solid fa-cart-shopping me-1"></i> Cart`;
+                }, 2000);
+
+                if (data.success) {
+                    updateNavbarCartCount(data.cart_count);
+                    showToastNotification(`"${productName.slice(0, 30)}" added to cart successfully! <a href="/cart/" class="text-white text-decoration-underline ms-1">View Cart</a>`, 'success');
+                } else {
+                    showToastNotification(data.message || 'Failed to add item to cart.', 'danger');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-cart-shopping me-1"></i> Cart`;
+                console.error("AI Add to Cart AJAX Error:", err);
+            });
+        });
+    }
+
+    function updateNavbarCartCount(count) {
+        const badges = document.querySelectorAll('.nav-link[href*="/cart"] .badge');
+        badges.forEach(b => {
+            b.textContent = count;
+            if (count > 0) {
+                b.className = 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark';
+            }
+        });
+    }
+
+    function showToastNotification(htmlContent, type) {
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'position-fixed bottom-0 end-0 p-3';
+            container.style.zIndex = '9999';
+            document.body.appendChild(container);
+        }
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0 show shadow-lg rounded-3 mb-2`;
+        toast.role = 'alert';
+        toast.innerHTML = `
+            <div class="d-flex p-2 align-items-center">
+                <div class="toast-body small fw-semibold flex-grow-1">${htmlContent}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest('.toast').remove()"></button>
+            </div>
+        `;
+        container.appendChild(toast);
+        setTimeout(() => {
+            if (toast) toast.remove();
+        }, 4000);
     }
 
     /**

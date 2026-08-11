@@ -61,6 +61,10 @@ def send_email_message(to_email: str, subject: str, html_body: str, plain_text_b
     Returns:
         tuple[bool, str]: (Success boolean, Status message)
     """
+    if current_app.config.get('TESTING') or current_app.config.get('MAIL_SUPPRESS_SEND'):
+        logger.info(f"[TEST SMTP LOG] Suppressed sending email to {to_email} (Subject: '{subject}')")
+        return True, "Email suppressed in testing mode."
+
     mail_server = current_app.config.get('MAIL_SERVER', 'smtp.gmail.com').strip()
     mail_port = int(current_app.config.get('MAIL_PORT', 587))
     mail_username = current_app.config.get('MAIL_USERNAME', '').strip()
