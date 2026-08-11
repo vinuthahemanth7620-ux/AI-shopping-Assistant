@@ -45,3 +45,7 @@ instance/
 *.sqlite
 *.sqlite3
 *.db
+
+dataset/train-00000-of-00001.parquet
+
+dataset/prepared/amazon_products_ready.csv
