@@ -55,6 +55,15 @@ def create_app(config_name=None):
     # Import ORM Models before migrations and loader setup
     from app import models
     from app.models.user import User
+    from app.models.team_member import TeamMember
+
+    # Seed official team members into database safely
+    try:
+        with app.app_context():
+            db.create_all()
+            TeamMember.seed_official_members()
+    except Exception:
+        pass
 
     # User Loader Callback for Flask-Login
     @login_manager.user_loader
@@ -73,6 +82,8 @@ def create_app(config_name=None):
     from app.routes.compare_routes import compare_bp
     from app.routes.planner_routes import planner_bp
     from app.routes.cart_routes import cart_bp
+    from app.routes.wishlist_routes import wishlist_bp
+    from app.routes.order_routes import order_bp
     from app.routes.profile_routes import profile_bp
     from app.routes.admin_routes import admin_bp
 
@@ -83,21 +94,27 @@ def create_app(config_name=None):
     app.register_blueprint(compare_bp, url_prefix='/compare')
     app.register_blueprint(planner_bp, url_prefix='/planner')
     app.register_blueprint(cart_bp, url_prefix='/cart')
+    app.register_blueprint(wishlist_bp, url_prefix='/wishlist')
+    app.register_blueprint(order_bp, url_prefix='/orders')
     app.register_blueprint(profile_bp, url_prefix='/profile')
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
     @app.context_processor
-    def inject_cart_count():
+    def inject_cart_and_wishlist_count():
         from flask_login import current_user
         from sqlalchemy import func
         from app.models.cart import Cart
+        from app.models.wishlist import Wishlist
+        
+        c_count = 0
+        w_count = 0
         if current_user.is_authenticated:
             try:
-                count = db.session.query(func.sum(Cart.quantity)).filter(Cart.user_id == current_user.id).scalar() or 0
-                return dict(cart_item_count=int(count))
+                c_count = db.session.query(func.sum(Cart.quantity)).filter(Cart.user_id == current_user.id).scalar() or 0
+                w_count = Wishlist.query.filter_by(user_id=current_user.id).count()
             except Exception:
-                return dict(cart_item_count=0)
-        return dict(cart_item_count=0)
+                pass
+        return dict(cart_item_count=int(c_count), wishlist_item_count=int(w_count))
 
     return app
 

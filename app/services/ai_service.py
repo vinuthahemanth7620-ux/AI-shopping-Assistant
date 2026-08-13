@@ -682,11 +682,10 @@ class AIService:
     def generate_ai_response(cls, user_query, user_id=None, conversation_history=None):
         """
         Main entry point for AI recommendations:
-        1. Extract natural language intent (incorporating conversation history context)
-        2. Query MySQL database for matching products via multi-tier retrieval engine
-        3. Build structured catalog context
-        4. Call Gemini API for response synthesis OR generate local natural response
-        5. Return response dictionary
+        1. Leverage Smart Recommendation Engine (RequirementParser, SQLAlchemy Database Filter, RecommendationScorer, Fallback Engine).
+        2. Format structured catalog context & explanations.
+        3. Call Gemini API for response synthesis OR generate local natural response.
+        4. Return response dictionary with top 5 recommendations.
         """
         user_query_clean = user_query.strip()
         if not user_query_clean:
@@ -710,19 +709,32 @@ class AIService:
                 'intent': q_type
             }
 
-        # Step 2: Retrieve products from MySQL catalog
-        products = cls.retrieve_relevant_products(intent, user_query_clean)
+        # Step 2: Use Smart Recommendation Engine
+        from app.recommendation.engine import RecommendationEngine
+        rec_res = RecommendationEngine.get_recommendations(
+            user_query=user_query_clean,
+            user_id=user_id,
+            conversation_history=conversation_history,
+            limit=5
+        )
+
+        products = rec_res.get('products', [])
+        is_fallback = rec_res.get('is_fallback', False)
+        fallback_msg = rec_res.get('fallback_message')
 
         api_key = cls.get_api_key()
 
         # Local natural AI response synthesis when Gemini API key is absent
         if not api_key:
             ai_text = cls._generate_local_natural_response(user_query_clean, intent, products)
+            if is_fallback and fallback_msg:
+                ai_text = f"💡 **Note**: {fallback_msg}\n\n" + ai_text
             return {
                 'success': True,
                 'ai_response': ai_text,
                 'recommended_products': products,
-                'intent': q_type
+                'intent': q_type,
+                'is_fallback': is_fallback
             }
 
         # Gemini Prompt Formulation
@@ -733,7 +745,7 @@ class AIService:
             "STRICT RULES:\n"
             "1. ONLY recommend products explicitly listed in the DATABASE CATALOG CONTEXT provided below.\n"
             "2. NEVER fabricate or invent product names, prices, specs, ratings, or availability.\n"
-            "3. Format product recommendations cleanly with Bullet points, Name, Price (in ₹), Rating, and a brief explanation of why it fits their request.\n"
+            "3. Format product recommendations cleanly with Bullet points, Name, Price (in ₹), Rating, Match Score, and a brief explanation of why it fits their request.\n"
             "4. Be conversational, helpful, and clear.\n"
         )
 
@@ -773,21 +785,28 @@ class AIService:
             if not ai_text:
                 ai_text = cls._generate_local_natural_response(user_query_clean, intent, products)
 
+            if is_fallback and fallback_msg:
+                ai_text = f"💡 **Note**: {fallback_msg}\n\n" + ai_text
+
             return {
                 'success': True,
                 'ai_response': ai_text,
                 'recommended_products': products,
-                'intent': intent.get('query_type', 'general')
+                'intent': intent.get('query_type', 'general'),
+                'is_fallback': is_fallback
             }
 
         except Exception as e:
             logger.error(f"Error calling Gemini API: {str(e)}")
             ai_text = cls._generate_local_natural_response(user_query_clean, intent, products)
+            if is_fallback and fallback_msg:
+                ai_text = f"💡 **Note**: {fallback_msg}\n\n" + ai_text
             return {
                 'success': True,
                 'ai_response': ai_text,
                 'recommended_products': products,
-                'intent': intent.get('query_type', 'general')
+                'intent': intent.get('query_type', 'general'),
+                'is_fallback': is_fallback
             }
 
     @staticmethod
@@ -848,8 +867,12 @@ class AIService:
         items_summary = []
         for p in products[:5]:
             cat_name = p.category.name if p.category else 'N/A'
+            rec_score = getattr(p, 'recommendation_score', None)
+            rec_reason = getattr(p, 'recommendation_reason', None)
+            score_str = f" | Match: **{rec_score:.0f}%**" if rec_score else ""
+            reason_str = f"\n  ↳ *{rec_reason}*" if rec_reason else ""
             items_summary.append(
-                f"• **{p.name}** ({p.brand}) - **₹{p.normalized_price_inr:,.2f}** | Rating: **{float(p.rating):.1f}★** (Category: {cat_name})"
+                f"• **{p.name}** ({p.brand}) - **₹{p.normalized_price_inr:,.2f}** | Rating: **{float(p.rating):.1f}★**{score_str}{reason_str}"
             )
 
         summary_text = "\n".join(items_summary)

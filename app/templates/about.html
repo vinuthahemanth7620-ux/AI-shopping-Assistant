@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}About Us - ShopSmart AI Shopping Assistant{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- HERO SECTION -->
+    <div class="row align-items-center mb-5 g-4">
+        <div class="col-lg-7">
+            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold mb-3 shadow-sm">
+                <i class="fa-solid fa-sparkles me-1"></i> Next-Gen E-Commerce Intelligence
+            </span>
+            <h1 class="display-5 fw-extrabold text-dark mb-3">
+                Shopping Made <span class="text-primary">Smarter & Effortless</span> with AI
+            </h1>
+            <p class="lead text-secondary mb-4 leading-relaxed">
+                ShopSmart AI is an advanced, full-stack e-commerce web platform designed to bridge the gap between traditional online product catalogs and conversational natural-language discovery.
+            </p>
+            <div class="d-flex flex-wrap gap-3">
+                <a href="{{ url_for('ai.ai_assistant') }}" class="btn btn-primary btn-lg rounded-pill px-4 fw-bold shadow">
+                    <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Try AI Assistant
+                </a>
+                <a href="{{ url_for('product.list_products') }}" class="btn btn-outline-secondary btn-lg rounded-pill px-4 fw-bold">
+                    <i class="fa-solid fa-store me-2"></i> Browse Catalog
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-5 text-center">
+            <div class="position-relative p-4">
+                <div class="bg-primary bg-opacity-10 rounded-circle p-5 d-inline-block shadow-sm">
+                    <i class="fa-solid fa-robot text-primary" style="font-size: 8rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CORE CAPABILITIES GRID -->
+    <div class="mb-5">
+        <div class="text-center max-w-700 mx-auto mb-4">
+            <h2 class="fw-bold text-dark mb-2">Core System Features</h2>
+            <p class="text-muted">Built from the ground up to deliver a seamless end-to-end shopping experience.</p>
+        </div>
+
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            <div class="col">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center bg-white hover-shadow transition-all">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-inline-block mb-3" style="width: 60px; height: 60px;">
+                        <i class="fa-solid fa-wand-magic-sparkles fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">AI Shopping Assistant</h5>
+                    <p class="text-muted small mb-0">
+                        Understands natural language shopping queries (e.g. <em>"Show me laptops under ₹60,000 for coding"</em>) and ranks relevant products dynamically.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center bg-white hover-shadow transition-all">
+                    <div class="bg-success bg-opacity-10 text-success rounded-circle p-3 d-inline-block mb-3" style="width: 60px; height: 60px;">
+                        <i class="fa-solid fa-layer-group fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Curated Dataset & Catalog</h5>
+                    <p class="text-muted small mb-0">
+                        Indexed real product records with rich specifications, categories, INR pricing, ratings, and instant search & filtering.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center bg-white hover-shadow transition-all">
+                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle p-3 d-inline-block mb-3" style="width: 60px; height: 60px;">
+                        <i class="fa-solid fa-heart fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Wishlist & Cart Pipeline</h5>
+                    <p class="text-muted small mb-0">
+                        Database-backed wishlist toggle state (`♥` / `♡`) and unified shopping cart persistence connected directly to MySQL.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center bg-white hover-shadow transition-all">
+                    <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-3 d-inline-block mb-3" style="width: 60px; height: 60px;">
+                        <i class="fa-solid fa-credit-card fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Orders & Checkout</h5>
+                    <p class="text-muted small mb-0">
+                        Complete checkout pipeline generating unique order numbers (`ORD-XXXX`), shipping tracking, and order history logs.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center bg-white hover-shadow transition-all">
+                    <div class="bg-info bg-opacity-10 text-info rounded-circle p-3 d-inline-block mb-3" style="width: 60px; height: 60px;">
+                        <i class="fa-solid fa-sliders fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Compare Specs & Planner</h5>
+                    <p class="text-muted small mb-0">
+                        Side-by-side product specification comparison table and shopping planner budget cap calculator.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center bg-white hover-shadow transition-all">
+                    <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle p-3 d-inline-block mb-3" style="width: 60px; height: 60px;">
+                        <i class="fa-solid fa-user-shield fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Admin Management</h5>
+                    <p class="text-muted small mb-0">
+                        Role-based access control (`@admin_required`) allowing administrators to create, edit, delete products and update order statuses.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TECH STACK SECTION -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-5 bg-white">
+        <h3 class="fw-bold text-dark mb-4 text-center"><i class="fa-solid fa-code me-2 text-primary"></i>Technology Stack</h3>
+
+        <div class="row g-3">
+            <div class="col-md-3 col-6 text-center">
+                <div class="p-3 bg-light rounded-3 border">
+                    <i class="fa-brands fa-python text-primary fs-2 mb-2"></i>
+                    <h6 class="fw-bold mb-1">Python 3.11</h6>
+                    <span class="text-muted extra-small">Backend Logic</span>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 text-center">
+                <div class="p-3 bg-light rounded-3 border">
+                    <i class="fa-solid fa-server text-dark fs-2 mb-2"></i>
+                    <h6 class="fw-bold mb-1">Flask 3.0</h6>
+                    <span class="text-muted extra-small">Web Framework</span>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 text-center">
+                <div class="p-3 bg-light rounded-3 border">
+                    <i class="fa-solid fa-database text-warning fs-2 mb-2"></i>
+                    <h6 class="fw-bold mb-1">MySQL Database</h6>
+                    <span class="text-muted extra-small">SQLAlchemy ORM</span>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 text-center">
+                <div class="p-3 bg-light rounded-3 border">
+                    <i class="fa-brands fa-bootstrap text-purple fs-2 mb-2" style="color: #7952b3;"></i>
+                    <h6 class="fw-bold mb-1">Bootstrap 5</h6>
+                    <span class="text-muted extra-small">Responsive UI</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DEVELOPER & REPOSITORY LINKS -->
+    <div class="text-center py-4 bg-primary bg-opacity-10 rounded-4 border p-4">
+        <h4 class="fw-bold mb-2">Project Repository & Portfolio</h4>
+        <p class="text-muted mb-4 max-w-600 mx-auto">Explore the project codebase and developer profiles on GitHub and LinkedIn.</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="https://github.com/vinuthahemanth7620-ux/AI-shopping-Assistant" target="_blank" class="btn btn-dark rounded-pill px-4 fw-bold shadow-sm">
+                <i class="fa-brands fa-github me-2"></i> GitHub Repository
+            </a>
+            <a href="https://linkedin.com" target="_blank" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                <i class="fa-brands fa-linkedin me-2"></i> LinkedIn Profile
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

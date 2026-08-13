@@ -146,3 +146,89 @@ def delete_product(product_id):
         flash('Failed to delete product or product not found.', 'danger')
 
     return redirect(url_for('admin.list_products'))
+
+
+@admin_bp.route('/orders')
+@admin_required
+def list_orders():
+    """
+    GET /admin/orders
+    Admin Order Management Listing Route.
+    """
+    from app.models.order import Order
+    orders = Order.query.order_by(Order.created_at.desc()).all()
+    return render_template('admin/orders.html', orders=orders)
+
+
+@admin_bp.route('/orders/update/<int:order_id>', methods=['POST'])
+@admin_required
+def update_order_status(order_id):
+    """
+    POST /admin/orders/update/<order_id>
+    Update Status for a Customer Order.
+    """
+    from app import db
+    from app.models.order import Order, OrderStatus
+    order = Order.query.get_or_404(order_id)
+    new_status = request.form.get('status')
+    
+    if new_status:
+        try:
+            order.status = OrderStatus(new_status)
+            db.session.commit()
+            flash(f"Order #{order.order_number} status updated to '{new_status}'.", 'success')
+        except ValueError:
+            flash("Invalid order status provided.", 'danger')
+        except Exception:
+            db.session.rollback()
+            flash("Failed to update order status.", 'danger')
+
+    return redirect(url_for('admin.list_orders'))
+
+
+@admin_bp.route('/messages')
+@admin_required
+def list_messages():
+    """
+    GET /admin/messages
+    Admin Contact Messages Listing Route.
+    """
+    from app.models.contact_message import ContactMessage
+    messages = ContactMessage.query.order_by(ContactMessage.created_at.desc()).all()
+    return render_template('admin/messages.html', messages=messages)
+
+
+@admin_bp.route('/messages/update/<int:msg_id>', methods=['POST'])
+@admin_required
+def update_message_status(msg_id):
+    """
+    POST /admin/messages/update/<msg_id>
+    Update status of a contact message ('read', 'resolved', 'unread').
+    """
+    from app import db
+    from app.models.contact_message import ContactMessage
+    msg = ContactMessage.query.get_or_404(msg_id)
+    new_status = request.form.get('status')
+    if new_status in ['unread', 'read', 'resolved']:
+        msg.status = new_status
+        db.session.commit()
+        flash(f"Message status updated to '{new_status}'.", 'success')
+    return redirect(url_for('admin.list_messages'))
+
+
+@admin_bp.route('/messages/delete/<int:msg_id>', methods=['POST'])
+@admin_required
+def delete_message(msg_id):
+    """
+    POST /admin/messages/delete/<msg_id>
+    Delete a contact message.
+    """
+    from app import db
+    from app.models.contact_message import ContactMessage
+    msg = ContactMessage.query.get_or_404(msg_id)
+    db.session.delete(msg)
+    db.session.commit()
+    flash("Contact message deleted successfully.", 'success')
+    return redirect(url_for('admin.list_messages'))
+
+

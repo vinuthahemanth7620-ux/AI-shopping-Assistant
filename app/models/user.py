@@ -60,6 +60,8 @@ class User(UserMixin, db.Model):
 
     # Relationships
     cart_items = db.relationship('Cart', backref='user', lazy=True, cascade='all, delete-orphan')
+    wishlist_items = db.relationship('Wishlist', backref='user', lazy=True, cascade='all, delete-orphan')
+    orders = db.relationship('Order', backref='user', lazy=True, cascade='all, delete-orphan')
     chat_histories = db.relationship('ChatHistory', backref='user', lazy=True, cascade='all, delete-orphan')
     recommendations = db.relationship('Recommendation', backref='user', lazy=True, cascade='all, delete-orphan')
     shopping_plans = db.relationship('ShoppingPlanner', backref='user', lazy=True, cascade='all, delete-orphan')

@@ -220,32 +220,40 @@ document.addEventListener('DOMContentLoaded', function () {
         const imgUrl = product.image_url || '/static/images/placeholder_product.png';
         const detailUrl = `/products/${product.id}`;
         const prodName = escapeHTML(product.name);
+        const scoreBadge = product.recommendation_score ? `<span class="badge bg-success text-white small fw-semibold"><i class="fa-solid fa-chart-line me-1"></i>${Math.round(product.recommendation_score)}% Match</span>` : '';
+        const reasonHTML = product.recommendation_reason ? `<div class="text-muted extra-small mb-2 fst-italic" style="font-size: 0.75rem;"><i class="fa-solid fa-circle-info text-info me-1"></i>${escapeHTML(product.recommendation_reason)}</div>` : '';
 
         return `
             <div class="col">
                 <div class="card h-100 border shadow-sm rounded-3 overflow-hidden bg-white hover-shadow transition-all">
-                    <div class="row g-0 align-items-center p-2">
-                        <div class="col-4 text-center bg-light p-2 rounded-2" style="height: 100px;">
-                            <a href="${detailUrl}">
-                                <img src="${imgUrl}" alt="${prodName}" class="img-fluid rounded h-100 object-fit-contain" onerror="this.src='https://via.placeholder.com/150';">
-                            </a>
-                        </div>
-                        <div class="col-8 ps-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge bg-light text-primary border me-1 small">${escapeHTML(product.brand || 'Brand')}</span>
+                    <div class="p-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-light text-primary border me-1 small">${escapeHTML(product.brand || 'Brand')}</span>
+                            <div class="d-flex gap-1 align-items-center">
+                                ${scoreBadge}
                                 <span class="badge bg-warning text-dark small fw-bold"><i class="fa-solid fa-star me-1"></i>${ratingVal}</span>
                             </div>
-                            <h6 class="card-title fs-6 mb-1 mt-1 text-truncate" title="${prodName}">
-                                <a href="${detailUrl}" class="text-dark text-decoration-none fw-bold">${prodName}</a>
-                            </h6>
-                            <div class="fw-bold text-success mb-2">${product.price_formatted || ('₹' + (product.price_raw || 0))}</div>
-                            <div class="d-flex gap-1">
-                                <button type="button" class="btn btn-sm btn-primary rounded-pill flex-fill py-1 fw-semibold add-to-cart-ai-btn" data-product-id="${product.id}" data-product-name="${prodName}">
-                                    <i class="fa-solid fa-cart-shopping me-1"></i> Cart
-                                </button>
-                                <a href="${detailUrl}" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-2 fw-semibold text-center" title="View Details">
-                                    <i class="fa-solid fa-chevron-right"></i>
+                        </div>
+                        <div class="row g-0 align-items-center">
+                            <div class="col-4 text-center bg-light p-2 rounded-2" style="height: 95px;">
+                                <a href="${detailUrl}">
+                                    <img src="${imgUrl}" alt="${prodName}" class="img-fluid rounded h-100 object-fit-contain" onerror="this.src='https://via.placeholder.com/150';">
                                 </a>
+                            </div>
+                            <div class="col-8 ps-3">
+                                <h6 class="card-title fs-6 mb-1 mt-1 text-truncate" title="${prodName}">
+                                    <a href="${detailUrl}" class="text-dark text-decoration-none fw-bold">${prodName}</a>
+                                </h6>
+                                <div class="fw-bold text-success mb-1">${product.price_formatted || ('₹' + (product.price_raw || 0))}</div>
+                                ${reasonHTML}
+                                <div class="d-flex gap-1">
+                                    <button type="button" class="btn btn-sm btn-primary rounded-pill flex-fill py-1 fw-semibold add-to-cart-ai-btn" data-product-id="${product.id}" data-product-name="${prodName}">
+                                        <i class="fa-solid fa-cart-shopping me-1"></i> Cart
+                                    </button>
+                                    <a href="${detailUrl}" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-2 fw-semibold text-center" title="View Details">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -254,70 +262,73 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
     }
 
-    // Attach delegated click listener for AI product card "Add to Cart" buttons
-    if (chatMessages) {
-        chatMessages.addEventListener('click', function (e) {
-            const btn = e.target.closest('.add-to-cart-ai-btn');
-            if (!btn) return;
+    // Attach delegated click listener for all product card "Add to Cart" buttons across chat and homepage
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.add-to-cart-ai-btn');
+        if (!btn) return;
 
-            e.preventDefault();
-            const productId = btn.getAttribute('data-product-id');
-            const productName = btn.getAttribute('data-product-name') || 'Product';
-            const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
+        e.preventDefault();
+        const productId = btn.getAttribute('data-product-id');
+        const productName = btn.getAttribute('data-product-name') || 'Product';
+        
+        let csrfToken = '';
+        if (csrfTokenInput) {
+            csrfToken = csrfTokenInput.value;
+        } else {
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+        }
 
-            btn.disabled = true;
-            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Adding...`;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Adding...`;
 
-            fetch(`/cart/add/${productId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ quantity: 1 })
-            })
-            .then(res => {
-                if (res.status === 401 || res.redirected) {
-                    window.location.href = '/auth/login';
-                    return null;
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (!data) return;
-                btn.disabled = false;
-                btn.className = 'btn btn-sm btn-success rounded-pill flex-fill py-1 fw-semibold add-to-cart-ai-btn';
-                btn.innerHTML = `<i class="fa-solid fa-check me-1"></i> Added!`;
-                
-                setTimeout(() => {
-                    btn.className = 'btn btn-sm btn-primary rounded-pill flex-fill py-1 fw-semibold add-to-cart-ai-btn';
-                    btn.innerHTML = `<i class="fa-solid fa-cart-shopping me-1"></i> Cart`;
-                }, 2000);
+        fetch(`/cart/add/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ quantity: 1 })
+        })
+        .then(res => {
+            if (res.status === 401 || res.redirected) {
+                window.location.href = '/auth/login';
+                return null;
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (!data) return;
+            btn.disabled = false;
+            const origClasses = btn.className;
+            btn.className = 'btn btn-sm btn-success rounded-pill px-3 fw-semibold add-to-cart-ai-btn';
+            btn.innerHTML = `<i class="fa-solid fa-check me-1"></i> Added!`;
+            
+            setTimeout(() => {
+                btn.className = origClasses;
+                btn.innerHTML = `<i class="fa-solid fa-cart-shopping me-1"></i> Add`;
+            }, 2000);
 
-                if (data.success) {
-                    updateNavbarCartCount(data.cart_count);
-                    showToastNotification(`"${productName.slice(0, 30)}" added to cart successfully! <a href="/cart/" class="text-white text-decoration-underline ms-1">View Cart</a>`, 'success');
-                } else {
-                    showToastNotification(data.message || 'Failed to add item to cart.', 'danger');
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-cart-shopping me-1"></i> Cart`;
-                console.error("AI Add to Cart AJAX Error:", err);
-            });
+            if (data.success) {
+                updateNavbarCartCount(data.cart_count);
+                showToastNotification(`"${productName.slice(0, 30)}" added to cart! <a href="/cart/" class="text-white text-decoration-underline ms-1">View Cart</a>`, 'success');
+            } else {
+                showToastNotification(data.message || 'Failed to add item to cart.', 'danger');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-cart-shopping me-1"></i> Add`;
+            console.error("AI Add to Cart AJAX Error:", err);
         });
-    }
+    });
 
     function updateNavbarCartCount(count) {
-        const badges = document.querySelectorAll('.nav-link[href*="/cart"] .badge');
+        const badges = document.querySelectorAll('.cart-badge-count, .nav-link[href*="/cart"] .badge');
         badges.forEach(b => {
             b.textContent = count;
-            if (count > 0) {
-                b.className = 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark';
-            }
         });
     }
 

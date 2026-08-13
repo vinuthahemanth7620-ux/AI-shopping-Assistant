@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin - Contact Messages - ShopSmart AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- BREADCRUMB & HEADER -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}" class="text-decoration-none text-muted">Admin Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Contact Messages</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1"><i class="fa-solid fa-inbox me-2 text-primary"></i>Customer Contact Messages</h2>
+            <p class="text-muted small mb-0">View and manage customer feedback, support inquiries, and project messages.</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- FLASH MESSAGES -->
+    {% with messages_list = get_flashed_messages(with_categories=true) %}
+        {% if messages_list %}
+            {% for category, message in messages_list %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- MESSAGES TABLE CARD -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light border-bottom">
+                    <tr class="small text-muted text-uppercase">
+                        <th class="ps-4">ID</th>
+                        <th>Sender Name</th>
+                        <th>Email</th>
+                        <th>Subject</th>
+                        <th>Message</th>
+                        <th>Date & Time</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if messages %}
+                        {% for msg in messages %}
+                            <tr>
+                                <td class="ps-4 fw-bold text-muted small">#{{ msg.id }}</td>
+                                <td class="fw-semibold text-dark">{{ msg.name }}</td>
+                                <td>
+                                    <a href="mailto:{{ msg.email }}" class="text-decoration-none text-primary small">
+                                        {{ msg.email }}
+                                    </a>
+                                </td>
+                                <td class="fw-medium text-dark small">{{ msg.subject }}</td>
+                                <td style="max-width: 250px;">
+                                    <p class="text-secondary small mb-0 text-truncate" title="{{ msg.message }}">
+                                        {{ msg.message }}
+                                    </p>
+                                </td>
+                                <td class="text-muted extra-small">{{ msg.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                                <td>
+                                    {% if msg.status == 'unread' %}
+                                        <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2 py-1 extra-small">Unread</span>
+                                    {% elif msg.status == 'read' %}
+                                        <span class="badge bg-warning bg-opacity-10 text-warning text-dark rounded-pill px-2 py-1 extra-small">Read</span>
+                                    {% else %}
+                                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-1 extra-small">Resolved</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="d-inline-flex gap-2">
+                                        <form action="{{ url_for('admin.update_message_status', msg_id=msg.id) }}" method="POST" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                                            <select name="status" onchange="this.form.submit()" class="form-select form-select-sm rounded-pill extra-small" style="width: auto;">
+                                                <option value="unread" {% if msg.status == 'unread' %}selected{% endif %}>Unread</option>
+                                                <option value="read" {% if msg.status == 'read' %}selected{% endif %}>Read</option>
+                                                <option value="resolved" {% if msg.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                                            </select>
+                                        </form>
+
+                                        <form action="{{ url_for('admin.delete_message', msg_id=msg.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this message?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" title="Delete Message">
+                                                <i class="fa-solid fa-trash extra-small"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <div class="py-4">
+                                    <i class="fa-solid fa-inbox text-muted mb-3" style="font-size: 3rem;"></i>
+                                    <h5 class="fw-bold text-dark mb-1">No Messages Found</h5>
+                                    <p class="text-muted small">Customer inquiries submitted via the Contact Us form will appear here.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

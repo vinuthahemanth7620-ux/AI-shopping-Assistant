@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Order Management - ShopSmart AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
+        <div>
+            <h2 class="fw-bold mb-1 text-danger"><i class="fa-solid fa-user-shield me-2"></i>Customer Orders Management</h2>
+            <p class="text-muted mb-0 small">View customer orders and update delivery statuses</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill btn-sm fw-semibold">
+            <i class="fa-solid fa-arrow-left me-1"></i> Admin Dashboard
+        </a>
+    </div>
+
+    {% if orders %}
+    <div class="card border shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Total Amount</th>
+                        <th>Items</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th class="text-end">Update Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('order.order_details', order_id=order.id) }}" class="fw-bold text-decoration-none text-primary">
+                                {{ order.order_number }}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ order.full_name }}</div>
+                            <div class="extra-small text-muted">{{ order.email }}</div>
+                        </td>
+                        <td class="fw-bold text-success">{{ order.total_amount_formatted }}</td>
+                        <td><span class="badge bg-secondary rounded-pill">{{ order.items|length }}</span></td>
+                        <td class="small text-muted">{{ order.created_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+                        <td>
+                            {% set status_val = order.status.value if order.status.value is defined else order.status %}
+                            {% if status_val == 'Pending' %}
+                                <span class="badge bg-warning text-dark px-3 py-1 rounded-pill">Pending</span>
+                            {% elif status_val == 'Processing' %}
+                                <span class="badge bg-info text-dark px-3 py-1 rounded-pill">Processing</span>
+                            {% elif status_val == 'Shipped' %}
+                                <span class="badge bg-primary px-3 py-1 rounded-pill">Shipped</span>
+                            {% elif status_val == 'Delivered' %}
+                                <span class="badge bg-success px-3 py-1 rounded-pill">Delivered</span>
+                            {% else %}
+                                <span class="badge bg-danger px-3 py-1 rounded-pill">Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <form action="{{ url_for('admin.update_order_status', order_id=order.id) }}" method="POST" class="d-inline-flex align-items-center gap-1">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <select name="status" class="form-select form-select-sm rounded-pill extra-small" style="width: 120px;">
+                                    <option value="Pending" {% if status_val == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Processing" {% if status_val == 'Processing' %}selected{% endif %}>Processing</option>
+                                    <option value="Shipped" {% if status_val == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                    <option value="Delivered" {% if status_val == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                    <option value="Cancelled" {% if status_val == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-success rounded-circle border-0" title="Save Status">
+                                    <i class="fa-solid fa-check"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5 bg-light rounded-4 border">
+        <i class="fa-solid fa-inbox display-4 text-muted mb-2"></i>
+        <h4 class="fw-bold mb-0">No customer orders placed yet.</h4>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

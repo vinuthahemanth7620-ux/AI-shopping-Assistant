@@ -164,9 +164,9 @@
                         <span class="fs-4 fw-bold font-monospace text-primary">{{ cart_total_formatted }}</span>
                     </div>
 
-                    <button type="button" class="btn btn-warning btn-lg w-100 fw-bold shadow-sm py-3 mb-3">
+                    <a href="{{ url_for('order.checkout') }}" class="btn btn-warning btn-lg w-100 fw-bold shadow-sm py-3 mb-3">
                         <i class="fa-solid fa-credit-card me-2"></i>Proceed to Checkout
-                    </button>
+                    </a>
 
                     <div class="text-center text-muted small">
                         <i class="fa-solid fa-shield-halved me-1 text-success"></i> Safe & Secure Checkout Guaranteed

@@ -106,6 +106,9 @@ class ProductPresenter:
         in_stock = product.is_available and product.is_active and (product.stock_quantity > 0)
         norm_p = cls.get_normalized_price_inr(product)
 
+        rec_score = getattr(product, 'recommendation_score', None)
+        rec_reason = getattr(product, 'recommendation_reason', None)
+
         return {
             'id': product.id,
             'sku': product.sku,
@@ -124,7 +127,9 @@ class ProductPresenter:
             'is_available': in_stock,
             'is_active': product.is_active,
             'stock_badge_class': 'bg-success' if in_stock else 'bg-danger',
-            'stock_badge_text': 'In Stock' if in_stock else 'Out of Stock'
+            'stock_badge_text': 'In Stock' if in_stock else 'Out of Stock',
+            'recommendation_score': round(float(rec_score), 1) if rec_score is not None else None,
+            'recommendation_reason': rec_reason
         }
 
     @classmethod

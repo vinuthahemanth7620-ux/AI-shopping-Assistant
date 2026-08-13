@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - ShopSmart AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4 border-bottom pb-3">
+        <h2 class="fw-bold mb-1"><i class="fa-solid fa-id-card text-info me-2"></i>My Profile</h2>
+        <p class="text-muted mb-0 small">Manage your account details and password settings</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- PROFILE EDIT FORM -->
+        <div class="col-lg-6">
+            <div class="card border shadow-sm rounded-4 p-4 bg-white">
+                <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-user-pen me-2 text-primary"></i>Personal Details</h5>
+
+                <form action="{{ url_for('profile.user_profile') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Username</label>
+                        <input type="text" class="form-control rounded-3 bg-light" value="{{ user.username }}" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Email Address</label>
+                        <input type="email" class="form-control rounded-3 bg-light" value="{{ user.email }}" readonly>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">First Name</label>
+                            <input type="text" name="first_name" class="form-control rounded-3" value="{{ user.first_name or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Last Name</label>
+                            <input type="text" name="last_name" class="form-control rounded-3" value="{{ user.last_name or '' }}">
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold my-3 border-bottom pb-2"><i class="fa-solid fa-key me-2 text-warning"></i>Change Password (Optional)</h5>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">New Password</label>
+                        <input type="password" name="new_password" class="form-control rounded-3" placeholder="Leave blank to keep unchanged">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small">Confirm New Password</label>
+                        <input type="password" name="confirm_password" class="form-control rounded-3" placeholder="Re-enter new password">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ACCOUNT INFO & LOGIN HISTORY -->
+        <div class="col-lg-6">
+            <div class="card border shadow-sm rounded-4 p-4 mb-4 bg-white">
+                <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-shield-halved me-2 text-success"></i>Account Summary</h5>
+                <p class="mb-2"><strong>Role:</strong> <span class="badge bg-primary rounded-pill px-3">{{ user.role.value if user.role.value is defined else user.role }}</span></p>
+                <p class="mb-2"><strong>Member Since:</strong> {{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'N/A' }}</p>
+                <p class="mb-0"><strong>Account Status:</strong> <span class="badge bg-success rounded-pill px-3">Active</span></p>
+            </div>
+
+            <div class="card border shadow-sm rounded-4 p-4 bg-white">
+                <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-clock-rotate-left me-2 text-info"></i>Recent Login Activity</h5>
+                {% if recent_logins %}
+                <ul class="list-group list-group-flush small">
+                    {% for login in recent_logins %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            <i class="fa-solid fa-globe me-2 text-muted"></i>{{ login.ip_address or '127.0.0.1' }}
+                            <span class="text-muted extra-small ms-1">({{ login.user_agent[:25] if login.user_agent else 'Browser' }})</span>
+                        </div>
+                        <span class="text-muted extra-small">{{ login.login_time.strftime('%b %d, %Y %I:%M %p') if login.login_time else 'Recently' }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted small mb-0">No login history records found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

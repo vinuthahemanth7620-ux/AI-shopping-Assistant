@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Shopping Planner - ShopSmart AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="fa-solid fa-calculator text-warning me-2"></i>Shopping Planner</h2>
+            <p class="text-muted mb-0 small">Organize your shopping bucket list and manage target budget caps</p>
+        </div>
+        <div class="bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold">
+            Total Target Budget: {{ total_budget_formatted }}
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- LEFT: ADD PLANNER ITEM -->
+        <div class="col-lg-4">
+            <div class="card border shadow-sm rounded-4 p-4 bg-white">
+                <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-plus me-2 text-primary"></i>Add Target Item</h5>
+                
+                <form action="{{ url_for('planner.shopping_planner') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="add">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Item / Gadget Title</label>
+                        <input type="text" name="title" class="form-control rounded-3" placeholder="e.g. Wireless Headphones for gym" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Target Budget Cap (₹)</label>
+                        <input type="number" step="100" name="target_budget" class="form-control rounded-3" placeholder="e.g. 3500" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100 rounded-pill fw-bold shadow-sm">
+                        <i class="fa-solid fa-calculator me-1"></i> Add to Planner
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- RIGHT: PLANNER LIST -->
+        <div class="col-lg-8">
+            <div class="card border shadow-sm rounded-4 p-4 bg-white">
+                <h5 class="fw-bold mb-3 border-bottom pb-2 d-flex justify-content-between align-items-center">
+                    <span><i class="fa-solid fa-list-check text-primary me-2"></i>My Planned Items</span>
+                    <span class="badge bg-secondary rounded-pill small">{{ planner_items|length }} Items</span>
+                </h5>
+
+                {% if planner_items %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item Title</th>
+                                <th>Target Budget</th>
+                                <th>Date Added</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in planner_items %}
+                            <tr>
+                                <td><span class="fw-bold text-dark">{{ item.plan_name }}</span></td>
+                                <td class="fw-bold text-success">₹{{ item.budget|round(2) if item.budget else 0.0 }}</td>
+                                <td class="small text-muted">{{ item.created_at.strftime('%b %d, %Y') }}</td>
+                                <td class="text-end">
+                                    <form action="{{ url_for('planner.shopping_planner') }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle border-0" title="Remove">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fa-solid fa-clipboard-list display-4 mb-2 opacity-50"></i>
+                    <p class="mb-0">No items added to your Shopping Planner yet. Add target items on the left!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

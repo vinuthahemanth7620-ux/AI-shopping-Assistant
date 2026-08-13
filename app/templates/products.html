@@ -184,7 +184,10 @@
                             
                             <!-- Image Container -->
                             <div class="product-card-img-wrapper position-relative p-3 bg-light rounded-top text-center" style="height: 220px;">
-                                <!-- Stock Badge -->
+                                <!-- Wishlist & Stock Badges -->
+                                <button type="button" class="btn btn-sm btn-light rounded-circle position-absolute top-0 start-0 m-2 shadow-sm wishlist-toggle-btn" data-product-id="{{ product.id }}" title="Add to Wishlist">
+                                    <i class="fa-regular fa-heart text-danger"></i>
+                                </button>
                                 <span class="badge {{ product.stock_badge_class }} position-absolute top-0 end-0 m-2 px-2 py-1 small">
                                     {{ product.stock_badge_text }}
                                 </span>

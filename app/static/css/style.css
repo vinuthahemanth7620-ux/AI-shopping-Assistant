@@ -314,6 +314,10 @@ footer a:hover {
   max-width: 75%;
 }
 
+.max-w-600 {
+  max-width: 600px;
+}
+
 .ai-formatted-text p:last-child {
   margin-bottom: 0;
 }
@@ -321,5 +325,109 @@ footer a:hover {
 .transition-all {
   transition: all 0.25s ease-in-out;
 }
+
+.hover-shadow:hover {
+  box-shadow: 0 10px 25px rgba(0,0,0,0.12) !important;
+  transform: translateY(-3px);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  background-color: #ffffff !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 6px 18px rgba(40,116,240,0.15) !important;
+}
+
+.transition-zoom {
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .transition-zoom {
+  transform: scale(1.06);
+}
+
+.hover-primary:hover {
+  color: var(--primary) !important;
+}
+
+.hover-white:hover {
+  color: #ffffff !important;
+}
+
+/* Sub-Nav Bar Active State */
+.active-sub-nav {
+  box-shadow: 0 2px 8px rgba(40,116,240,0.3);
+}
+
+.sub-nav-links .nav-link {
+  font-size: 0.88rem;
+  transition: all 0.2s ease;
+}
+
+.sub-nav-links .nav-link:hover:not(.active-sub-nav) {
+  background-color: rgba(40,116,240,0.08);
+  color: var(--primary) !important;
+}
+
+/* Online Glow Dot Animation */
+.online-dot {
+  box-shadow: 0 0 6px #22c55e;
+  animation: pulseGlow 2s infinite;
+}
+
+@keyframes pulseGlow {
+  0% { opacity: 0.7; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0.7; transform: scale(0.95); }
+}
+
+/* Homepage Embedded Chatbot Styling */
+.homepage-chatbot-card {
+  box-shadow: 0 16px 36px rgba(0,0,0,0.2) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+}
+
+.chat-messages-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.chat-messages-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.chat-messages-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.suggested-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+.suggested-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.extra-small {
+  font-size: 0.75rem;
+}
+
+.fw-extrabold {
+  font-weight: 800;
+}
+
+.tracking-wide {
+  letter-spacing: 0.05em;
+}
+
+/* Responsive Overrides */
+@media (max-width: 991.98px) {
+  .hero-section {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+  }
+  .homepage-chatbot-card {
+    margin-top: 1.5rem;
+  }
+}
+
 
 

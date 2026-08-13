@@ -1,86 +1,350 @@
 {% extends 'base.html' %}
 
-{% block title %}Shop Smarter - AI Shopping Assistant{% endblock %}
+{% block title %}ShopSmart AI - Smart Shopping Made Simple{% endblock %}
 
 {% block content %}
-<div class="container">
-    <!-- Hero Banner Section -->
-    <div class="p-5 mb-4 rounded-4 text-white shadow-sm" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
-        <div class="row align-items-center">
-            <div class="col-lg-8">
-                <span class="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill mb-3">
-                    <i class="fa-solid fa-sparkles me-1"></i> Final Year Capstone Project Foundation
-                </span>
-                <h1 class="display-5 fw-bold mb-3">Shop Smarter with AI-Powered Intelligence</h1>
-                <p class="lead fs-5 text-light opacity-90 mb-4">
-                    Compare gadgets, get personalized recommendations based on your budget, and ask our AI assistant for instant purchasing advice.
-                </p>
-                <div class="d-flex flex-wrap gap-3">
-                    <a href="{{ url_for('ai.ai_assistant') }}" class="btn btn-warning btn-lg fw-bold px-4">
-                        <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Try AI Assistant
-                    </a>
-                    <a href="{{ url_for('product.list_products') }}" class="btn btn-outline-light btn-lg fw-semibold px-4">
-                        <i class="fa-solid fa-compass me-2"></i> Explore Products
-                    </a>
-                </div>
-            </div>
-            <div class="col-lg-4 text-center d-none d-lg-block">
-                <i class="fa-solid fa-robot text-warning opacity-75 display-1" style="font-size: 10rem;"></i>
-            </div>
-        </div>
-    </div>
+<div class="container-fluid px-0">
 
-    <!-- Core Module Feature Cards Grid -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-3">
-            <div class="custom-card p-4 h-100 text-center">
-                <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-inline-block mb-3 fs-3">
-                    <i class="fa-solid fa-brain"></i>
-                </div>
-                <h5 class="fw-bold">AI Assistant</h5>
-                <p class="text-muted small">Chat with Gemini AI to find products tailored to your exact preferences.</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="custom-card p-4 h-100 text-center">
-                <div class="rounded-circle bg-success bg-opacity-10 text-success p-3 d-inline-block mb-3 fs-3">
-                    <i class="fa-solid fa-sliders"></i>
-                </div>
-                <h5 class="fw-bold">Smart Comparison</h5>
-                <p class="text-muted small">Side-by-side spec comparison to eliminate purchasing hesitation.</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="custom-card p-4 h-100 text-center">
-                <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 d-inline-block mb-3 fs-3">
-                    <i class="fa-solid fa-calculator"></i>
-                </div>
-                <h5 class="fw-bold">Shopping Planner</h5>
-                <p class="text-muted small">Organize your shopping bucket list while adhering to budget caps.</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="custom-card p-4 h-100 text-center">
-                <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-3 d-inline-block mb-3 fs-3">
-                    <i class="fa-solid fa-chart-line"></i>
-                </div>
-                <h5 class="fw-bold">Cart Analytics</h5>
-                <p class="text-muted small">Intelligent cart breakdown and savings optimization tips.</p>
-            </div>
-        </div>
-    </div>
+    <!-- HERO + INTEGRATED AI CHATBOT SECTION -->
+    <section class="hero-section py-4 py-md-5 position-relative overflow-hidden" style="background: linear-gradient(135deg, #102a43 0%, #1a365d 50%, #0f172a 100%);">
+        <div class="container">
+            <div class="row align-items-center g-4">
+                
+                <!-- HERO LEFT COLUMN -->
+                <div class="col-lg-7 text-white">
+                    <div class="pe-lg-3">
+                        <span class="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill mb-3 shadow-sm d-inline-flex align-items-center gap-1">
+                            <i class="fa-solid fa-sparkles"></i> AI-Powered Shopping Assistant
+                        </span>
+                        <h1 class="display-4 fw-extrabold mb-3 text-white lh-sm">
+                            Smart Shopping <br><span class="text-warning">Made Simple</span>
+                        </h1>
+                        <p class="lead fs-5 text-light opacity-90 mb-4 max-w-600">
+                            Find the right products, compare options, and shop smarter with our AI Shopping Assistant. Get instant personalized recommendations from our verified catalog.
+                        </p>
+                        
+                        <!-- CTA BUTTONS -->
+                        <div class="d-flex flex-wrap gap-3 mb-4">
+                            <a href="{{ url_for('product.list_products') }}" class="btn btn-warning btn-lg fw-bold px-4 rounded-pill shadow">
+                                <i class="fa-solid fa-bag-shopping me-2"></i> Shop Now
+                            </a>
+                            <button type="button" onclick="focusChatbotInput()" class="btn btn-outline-light btn-lg fw-semibold px-4 rounded-pill">
+                                <i class="fa-solid fa-robot me-2 text-warning"></i> Ask AI Assistant
+                            </button>
+                        </div>
 
-    <!-- Architecture Notice Card -->
-    <div class="alert alert-info border-info shadow-sm p-4 rounded-3">
-        <div class="d-flex align-items-start gap-3">
-            <i class="fa-solid fa-circle-info fs-2 text-info mt-1"></i>
-            <div>
-                <h5 class="alert-heading fw-bold mb-1">Flask Application Foundation Initialized</h5>
-                <p class="mb-0 text-dark">
-                    The complete Flask Application Factory, database connection configuration, SQLAlchemy ORM models, REST API blueprints, base templates, and design system CSS have been initialized cleanly.
-                </p>
+                        <!-- TRUST BADGES -->
+                        <div class="d-flex flex-wrap gap-4 pt-2 border-top border-secondary border-opacity-50 text-white-50 small">
+                            <div><i class="fa-solid fa-bolt text-warning me-1"></i> Instant AI Answers</div>
+                            <div><i class="fa-solid fa-shield-check text-success me-1"></i> Verified Catalog</div>
+                            <div><i class="fa-solid fa-thumbs-up text-info me-1"></i> 100% Free Advice</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HERO RIGHT COLUMN (INTEGRATED HOMEPAGE CHATBOT PANEL) -->
+                <div class="col-lg-5">
+                    <div class="homepage-chatbot-card card border-0 shadow-lg rounded-4 overflow-hidden bg-white">
+                        
+                        <!-- CHATBOT HEADER -->
+                        <div class="chatbot-header p-3 bg-primary text-white d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar-box bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px;">
+                                    <i class="fa-solid fa-robot"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-white fs-6">AI Shopping Assistant</h6>
+                                    <span class="status-indicator small text-light d-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                                        <span class="online-dot bg-success rounded-circle d-inline-block" style="width: 8px; height: 8px;"></span> Online
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" id="clearChatBtn" class="btn btn-sm btn-outline-light rounded-circle border-0" title="Refresh Conversation">
+                                    <i class="fa-solid fa-rotate-right"></i>
+                                </button>
+                                <button type="button" onclick="toggleChatbotBody()" class="btn btn-sm btn-outline-light rounded-circle border-0" title="Minimize">
+                                    <i class="fa-solid fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- CHATBOT BODY -->
+                        <div id="homepageChatBody" class="chatbot-body-container bg-light p-3">
+                            
+                            <!-- MESSAGES CONTAINER -->
+                            <div id="chatMessages" class="chat-messages-scroll p-2" style="height: 310px; overflow-y: auto;">
+                                
+                                <!-- WELCOME MESSAGE -->
+                                <div class="d-flex gap-2 mb-3 message-wrapper ai-message">
+                                    <div class="avatar-icon bg-warning text-dark rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px;">
+                                        <i class="fa-solid fa-robot small"></i>
+                                    </div>
+                                    <div class="message-content-wrapper flex-grow-1" style="max-width: 88%;">
+                                        <div class="p-3 rounded-4 shadow-sm bg-white border border-light-subtle text-dark">
+                                            <p class="fw-bold text-primary mb-1 small"><i class="fa-solid fa-sparkles me-1"></i> AI Assistant</p>
+                                            <p class="mb-0 fs-6">Hi! 👋<br>I'm your AI Shopping Assistant. How can I help you shop today?</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- SUGGESTED QUESTIONS CHIPS -->
+                            <div class="suggested-chips-wrapper py-2 border-top border-bottom mb-2 bg-white px-2 rounded-3">
+                                <div class="small fw-semibold text-muted mb-1" style="font-size: 0.75rem;">Suggested Questions:</div>
+                                <div class="d-flex gap-1 overflow-x-auto flex-nowrap pb-1 suggested-scroll">
+                                    <button type="button" class="btn btn-xs btn-outline-primary rounded-pill text-nowrap suggested-chip small py-1 px-2" style="font-size: 0.75rem;">Find the best deals</button>
+                                    <button type="button" class="btn btn-xs btn-outline-primary rounded-pill text-nowrap suggested-chip small py-1 px-2" style="font-size: 0.75rem;">Show me headphones under ₹2,000</button>
+                                    <button type="button" class="btn btn-xs btn-outline-primary rounded-pill text-nowrap suggested-chip small py-1 px-2" style="font-size: 0.75rem;">Recommend gifts for birthdays</button>
+                                    <button type="button" class="btn btn-xs btn-outline-primary rounded-pill text-nowrap suggested-chip small py-1 px-2" style="font-size: 0.75rem;">Help me choose a product</button>
+                                    <button type="button" class="btn btn-xs btn-outline-primary rounded-pill text-nowrap suggested-chip small py-1 px-2" style="font-size: 0.75rem;">Find highly rated products</button>
+                                </div>
+                            </div>
+
+                            <!-- CHAT INPUT FORM -->
+                            <form id="chatForm" class="chat-input-form position-relative">
+                                <input type="hidden" id="csrfToken" value="{{ csrf_token() }}">
+                                <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white border">
+                                    <input type="text" id="chatInput" class="form-control border-0 px-3 py-2 shadow-none small" placeholder="Type your message..." aria-label="Type your message..." required autocomplete="off">
+                                    <button type="submit" id="sendBtn" class="btn btn-warning px-3 border-0 fw-bold d-flex align-items-center gap-1">
+                                        <span>Send</span> <i class="fa-solid fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </form>
+
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
         </div>
-    </div>
+    </section>
+
+    <!-- SHOP BY CATEGORY SECTION -->
+    <section class="py-5 bg-white border-bottom">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                    <span class="text-primary fw-bold text-uppercase small tracking-wide">Explore Categories</span>
+                    <h2 class="fw-bold mb-0 text-dark">Shop by Category</h2>
+                </div>
+                <a href="{{ url_for('product.list_products') }}" class="btn btn-outline-primary btn-sm rounded-pill fw-semibold">
+                    View All Categories <i class="fa-solid fa-chevron-right ms-1"></i>
+                </a>
+            </div>
+
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3">
+                {% for cat in categories %}
+                <div class="col">
+                    <a href="{{ url_for('product.list_products', category=cat.id) }}" class="category-card text-decoration-none d-block text-center p-3 rounded-4 bg-light border hover-lift transition-all h-100">
+                        <div class="category-icon-wrapper rounded-circle bg-primary bg-opacity-10 text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width: 54px; height: 54px; font-size: 1.4rem;">
+                            <i class="fa-solid {{ cat.icon }}"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1 fs-6 text-truncate" title="{{ cat.name }}">{{ cat.name }}</h6>
+                        <span class="badge bg-secondary bg-opacity-10 text-muted fw-normal rounded-pill extra-small" style="font-size: 0.7rem;">{{ cat.product_count }} Products</span>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURED PRODUCTS SECTION -->
+    <section id="featured-products" class="py-5" style="background-color: #f8fafc;">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                    <span class="text-primary fw-bold text-uppercase small tracking-wide">Handpicked Collection</span>
+                    <h2 class="fw-bold mb-0 text-dark">Featured Products</h2>
+                </div>
+                <a href="{{ url_for('product.list_products') }}" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold">
+                    Browse All Catalog <i class="fa-solid fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+                {% for product in featured_products %}
+                <div class="col">
+                    <div class="card h-100 border shadow-sm rounded-4 overflow-hidden bg-white product-card hover-shadow transition-all">
+                        <div class="position-relative bg-light p-3 text-center" style="height: 180px;">
+                            <span class="badge bg-primary position-absolute top-0 start-0 m-2 rounded-pill px-2 py-1 extra-small">{{ product.brand }}</span>
+                            <button type="button" class="btn btn-sm btn-light rounded-circle position-absolute top-0 end-0 m-2 shadow-sm wishlist-toggle-btn" data-product-id="{{ product.id }}" title="Add to Wishlist">
+                                <i class="fa-regular fa-heart text-danger"></i>
+                            </button>
+                            <a href="{{ url_for('product.product_details', product_id=product.id) }}" class="d-block h-100">
+                                <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid h-100 object-fit-contain transition-zoom" onerror="this.src='https://via.placeholder.com/200';">
+                            </a>
+                        </div>
+                        <div class="card-body p-3 d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-muted extra-small" style="font-size: 0.75rem;">{{ product.category_name }}</span>
+                                <span class="badge bg-warning text-dark fw-bold small"><i class="fa-solid fa-star me-1"></i>{{ product.rating.value }}</span>
+                            </div>
+                            <h6 class="card-title fw-bold text-dark mb-2 text-truncate" title="{{ product.name }}">
+                                <a href="{{ url_for('product.product_details', product_id=product.id) }}" class="text-dark text-decoration-none hover-primary">{{ product.name }}</a>
+                            </h6>
+                            <div class="mt-auto pt-2 border-top d-flex align-items-center justify-content-between">
+                                <div>
+                                    <span class="fs-5 fw-extrabold text-success">{{ product.price_formatted }}</span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold add-to-cart-ai-btn" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}">
+                                    <i class="fa-solid fa-cart-shopping me-1"></i> Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- TODAY'S BEST DEALS SECTION -->
+    <section class="py-5 bg-white border-top border-bottom">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                    <span class="text-danger fw-bold text-uppercase small tracking-wide"><i class="fa-solid fa-fire me-1"></i> Limited Time</span>
+                    <h2 class="fw-bold mb-0 text-dark">Today's Best Deals</h2>
+                </div>
+                <a href="{{ url_for('product.list_products', sort='rating_desc') }}" class="btn btn-outline-danger btn-sm rounded-pill fw-semibold">
+                    View All Deals <i class="fa-solid fa-chevron-right ms-1"></i>
+                </a>
+            </div>
+
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-4">
+                {% for product in deals_products %}
+                <div class="col">
+                    <div class="card h-100 border-danger border-opacity-25 shadow-sm rounded-4 overflow-hidden bg-white hover-shadow transition-all">
+                        <div class="position-relative bg-light p-3 text-center" style="height: 170px;">
+                            <span class="badge bg-danger position-absolute top-0 start-0 m-2 rounded-pill px-2 py-1 fw-bold">Top Deal</span>
+                            <a href="{{ url_for('product.product_details', product_id=product.id) }}" class="d-block h-100">
+                                <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid h-100 object-fit-contain" onerror="this.src='https://via.placeholder.com/200';">
+                            </a>
+                        </div>
+                        <div class="card-body p-3 d-flex flex-column">
+                            <h6 class="card-title fw-bold text-dark mb-1 text-truncate" title="{{ product.name }}">{{ product.name }}</h6>
+                            <div class="d-flex align-items-center gap-1 mb-2">
+                                <span class="badge bg-warning text-dark fw-bold small"><i class="fa-solid fa-star me-1"></i>{{ product.rating.value }}</span>
+                                <span class="text-muted extra-small" style="font-size: 0.75rem;">Verified Rating</span>
+                            </div>
+                            <div class="mt-auto d-flex align-items-center justify-content-between">
+                                <span class="fs-5 fw-extrabold text-danger">{{ product.price_formatted }}</span>
+                                <button type="button" class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold add-to-cart-ai-btn" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}">
+                                    <i class="fa-solid fa-cart-shopping me-1"></i> Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- NEW ARRIVALS SECTION -->
+    <section class="py-5" style="background-color: #f8fafc;">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                    <span class="text-success fw-bold text-uppercase small tracking-wide"><i class="fa-solid fa-sparkles me-1"></i> Fresh In Catalog</span>
+                    <h2 class="fw-bold mb-0 text-dark">New Arrivals</h2>
+                </div>
+                <a href="{{ url_for('product.list_products', sort='newest') }}" class="btn btn-outline-success btn-sm rounded-pill fw-semibold">
+                    View New Arrivals <i class="fa-solid fa-chevron-right ms-1"></i>
+                </a>
+            </div>
+
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-4">
+                {% for product in new_arrivals %}
+                <div class="col">
+                    <div class="card h-100 border shadow-sm rounded-4 overflow-hidden bg-white hover-shadow transition-all">
+                        <div class="position-relative bg-light p-3 text-center" style="height: 170px;">
+                            <span class="badge bg-success position-absolute top-0 start-0 m-2 rounded-pill px-2 py-1 fw-bold">New</span>
+                            <a href="{{ url_for('product.product_details', product_id=product.id) }}" class="d-block h-100">
+                                <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid h-100 object-fit-contain" onerror="this.src='https://via.placeholder.com/200';">
+                            </a>
+                        </div>
+                        <div class="card-body p-3 d-flex flex-column">
+                            <h6 class="card-title fw-bold text-dark mb-1 text-truncate" title="{{ product.name }}">{{ product.name }}</h6>
+                            <div class="text-muted extra-small mb-2" style="font-size: 0.75rem;">{{ product.category_name }}</div>
+                            <div class="mt-auto d-flex align-items-center justify-content-between">
+                                <span class="fs-5 fw-extrabold text-primary">{{ product.price_formatted }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold add-to-cart-ai-btn" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}">
+                                    <i class="fa-solid fa-cart-shopping me-1"></i> Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- BENEFITS SECTION -->
+    <section class="py-5 bg-white border-top" id="about">
+        <div class="container">
+            <div class="row g-4 text-center">
+                <div class="col-6 col-md-3">
+                    <div class="p-3 rounded-4 bg-light h-100">
+                        <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                            <i class="fa-solid fa-truck-fast"></i>
+                        </div>
+                        <h6 class="fw-bold mb-1">Free Delivery</h6>
+                        <p class="text-muted extra-small mb-0">On all orders above ₹500 across India</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 rounded-4 bg-light h-100">
+                        <div class="rounded-circle bg-success bg-opacity-10 text-success p-3 mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </div>
+                        <h6 class="fw-bold mb-1">Easy Returns</h6>
+                        <p class="text-muted extra-small mb-0">10-day simple return & replacement policy</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 rounded-4 bg-light h-100">
+                        <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                            <i class="fa-solid fa-tags"></i>
+                        </div>
+                        <h6 class="fw-bold mb-1">Best Prices</h6>
+                        <p class="text-muted extra-small mb-0">Verified catalog prices & AI deal matching</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 rounded-4 bg-light h-100">
+                        <div class="rounded-circle bg-info bg-opacity-10 text-info p-3 mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                            <i class="fa-solid fa-shield-check"></i>
+                        </div>
+                        <h6 class="fw-bold mb-1">Secure Payments</h6>
+                        <p class="text-muted extra-small mb-0">Protected checkout & order tracking</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
 </div>
+
+<script>
+    function focusChatbotInput() {
+        const inp = document.getElementById('chatInput');
+        if (inp) {
+            inp.focus();
+            inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function toggleChatbotBody() {
+        const body = document.getElementById('homepageChatBody');
+        if (body) {
+            body.style.display = (body.style.display === 'none') ? 'block' : 'none';
+        }
+    }
+</script>
 {% endblock %}
+

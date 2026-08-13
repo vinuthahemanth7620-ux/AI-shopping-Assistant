@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout - ShopSmart AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4">
+        <h2 class="fw-bold mb-1"><i class="fa-solid fa-credit-card me-2 text-primary"></i>Checkout</h2>
+        <p class="text-muted small mb-0">Complete your order details below</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- LEFT: SHIPPING FORM -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+                <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-truck me-2 text-primary"></i>Shipping Information</h5>
+
+                <form action="{{ url_for('order.checkout') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold small">Full Name</label>
+                            <input type="text" name="full_name" class="form-control rounded-3" value="{{ current_user.first_name }} {{ current_user.last_name }}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Email Address</label>
+                            <input type="email" name="email" class="form-control rounded-3" value="{{ current_user.email }}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Phone Number</label>
+                            <input type="tel" name="phone" class="form-control rounded-3" placeholder="+91 9876543210" required>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold small">Shipping Street Address</label>
+                            <textarea name="shipping_address" class="form-control rounded-3" rows="2" placeholder="House no, Street name, Area" required></textarea>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">City</label>
+                            <input type="text" name="city" class="form-control rounded-3" placeholder="e.g. Bangalore" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Postal Code / PIN</label>
+                            <input type="text" name="postal_code" class="form-control rounded-3" placeholder="560001" required>
+                        </div>
+
+                        <div class="col-md-12 mt-4">
+                            <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-wallet me-2 text-success"></i>Payment Options</h5>
+
+                            <div class="form-check p-3 border rounded-3 mb-2 bg-light">
+                                <input class="form-check-input" type="radio" name="payment_method" id="payCOD" value="Cash on Delivery" checked>
+                                <label class="form-check-input-label fw-bold" for="payCOD">
+                                    <i class="fa-solid fa-hand-holding-dollar text-success me-1"></i> Cash on Delivery (Pay upon arrival)
+                                </label>
+                            </div>
+
+                            <div class="form-check p-3 border rounded-3 opacity-75">
+                                <input class="form-check-input" type="radio" name="payment_method" id="payUPI" value="UPI / Online Demo" disabled>
+                                <label class="form-check-input-label text-muted" for="payUPI">
+                                    <i class="fa-solid fa-qrcode me-1"></i> Instant UPI / Online Payment (Simulator Mode)
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12 mt-4">
+                            <button type="submit" class="btn btn-warning btn-lg w-100 rounded-pill fw-bold shadow">
+                                <i class="fa-solid fa-lock me-2"></i> Place Order ({{ cart_total_formatted }})
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- RIGHT: ORDER SUMMARY -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-light">
+                <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-basket-shopping me-2 text-primary"></i>Order Summary</h5>
+
+                <div class="cart-items-scroll mb-3" style="max-height: 320px; overflow-y: auto;">
+                    {% for item in cart_items %}
+                    <div class="d-flex align-items-center justify-content-between mb-3 bg-white p-2 rounded-3 border">
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" style="width: 45px; height: 45px; object-fit: contain;">
+                            <div>
+                                <h6 class="mb-0 small fw-bold text-truncate" style="max-width: 180px;">{{ item.product.name }}</h6>
+                                <span class="extra-small text-muted">Qty: {{ item.quantity }} × ₹{{ item.unit_price|round(2) }}</span>
+                            </div>
+                        </div>
+                        <span class="fw-bold text-success small">₹{{ item.subtotal|round(2) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Subtotal:</span>
+                    <span class="fw-semibold">{{ cart_total_formatted }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Delivery Charge:</span>
+                    <span class="fw-semibold text-success">FREE</span>
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between fs-5 fw-bold">
+                    <span>Total Amount:</span>
+                    <span class="text-success">{{ cart_total_formatted }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

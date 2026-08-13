@@ -61,6 +61,12 @@ class Product(db.Model):
     # One-to-Many: Product -> Cart Items
     cart_items = db.relationship('Cart', backref='product', lazy=True, cascade='all, delete-orphan')
 
+    # One-to-Many: Product -> Wishlist Items
+    wishlist_items = db.relationship('Wishlist', backref='product', lazy=True, cascade='all, delete-orphan')
+
+    # One-to-Many: Product -> Order Items
+    order_items = db.relationship('OrderItem', backref='product', lazy=True)
+
     # One-to-Many: Product -> Recommendations
     recommendations = db.relationship('Recommendation', backref='product', lazy=True, cascade='all, delete-orphan')
 

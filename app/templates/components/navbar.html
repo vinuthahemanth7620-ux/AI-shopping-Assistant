@@ -1,145 +1,200 @@
-<nav class="navbar navbar-expand-lg sticky-top shadow-sm" style="background-color: var(--primary);">
-    <div class="container">
-        <!-- Brand Logo -->
-        <a class="navbar-brand navbar-brand-custom" href="{{ url_for('main.index') }}">
-            <i class="fa-solid fa-robot text-warning me-1"></i> Shop<span>AI</span>
-        </a>
-
-        <!-- Mobile Toggler -->
-        <button class="navbar-toggler text-white border-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <!-- Navbar Links & Search -->
-        <div class="collapse navbar-collapse" id="navbarContent">
-            
-            <!-- Global Search Form -->
-            <form class="d-flex mx-auto my-2 my-lg-0 w-50" action="{{ url_for('product.list_products') }}" method="GET">
-                <div class="input-group">
-                    <input type="text" name="q" class="form-control search-bar-input" placeholder="Search products, brands, or ask AI..." aria-label="Search">
-                    <button class="btn search-bar-btn" type="submit">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </button>
-                </div>
-            </form>
-
-            <!-- Navigation Actions -->
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-2">
+<!-- E-COMMERCE HEADER (TIER 1 & TIER 2) -->
+<header class="header-wrapper sticky-top shadow-sm bg-white">
+    
+    <!-- TIER 1: MAIN HEADER BAR -->
+    <div class="main-header border-bottom py-2" style="background-color: var(--primary);">
+        <div class="container">
+            <div class="row align-items-center g-2">
                 
-                {% set is_admin = current_user.is_authenticated and (current_user.role == 'admin' or (current_user.role.value is defined and current_user.role.value == 'admin')) %}
-
-                {% if is_admin %}
-                    <!-- ADMIN ROLE NAVBAR LINKS -->
-                    <li class="nav-item">
-                        <a class="nav-link text-white fw-medium" href="{{ url_for('admin.dashboard') }}">
-                            <i class="fa-solid fa-gauge-high me-1 text-warning"></i> Admin Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white fw-medium" href="{{ url_for('admin.list_products') }}">
-                            <i class="fa-solid fa-boxes-stacked me-1"></i> Product Management
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white fw-medium" href="{{ url_for('admin.add_product') }}">
-                            <i class="fa-solid fa-circle-plus me-1 text-success"></i> Add Product
-                        </a>
-                    </li>
-                {% else %}
-                    <!-- NORMAL USER / GUEST SHOPPING NAVBAR LINKS -->
-                    <li class="nav-item">
-                        <a class="nav-link text-white fw-medium" href="{{ url_for('product.list_products') }}">
-                            <i class="fa-solid fa-store me-1"></i> Products
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white fw-medium" href="{{ url_for('ai.ai_assistant') }}">
-                            <span class="ai-badge"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Assistant</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white fw-medium" href="{{ url_for('compare.compare_products') }}">
-                            <i class="fa-solid fa-code-compare me-1"></i> Compare
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white fw-medium" href="{{ url_for('planner.shopping_planner') }}">
-                            <i class="fa-solid fa-calendar-check me-1"></i> Planner
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white fw-medium position-relative me-2" href="{{ url_for('cart.view_cart') }}">
-                            <i class="fa-solid fa-cart-shopping me-1"></i> Cart
-                            {% if cart_item_count and cart_item_count > 0 %}
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">{{ cart_item_count }}</span>
-                            {% else %}
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white opacity-75">0</span>
-                            {% endif %}
-                        </a>
-                    </li>
-                {% endif %}
-
-                <!-- User Account Dropdown -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle text-white fw-semibold btn btn-outline-light px-3 py-1 text-start" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="fa-regular fa-circle-user me-1"></i>
-                        {% if current_user.is_authenticated %}
-                            {{ current_user.first_name if current_user.first_name else current_user.username }}
-                        {% else %}
-                            Account
-                        {% endif %}
+                <!-- BRAND LOGO -->
+                <div class="col-auto col-md-3 d-flex align-items-center">
+                    <a class="navbar-brand navbar-brand-custom text-white fw-bold d-flex align-items-center fs-4 text-decoration-none" href="{{ url_for('main.index') }}">
+                        <div class="bg-warning text-dark rounded-circle p-2 me-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                            <i class="fa-solid fa-robot"></i>
+                        </div>
+                        <span>ShopSmart <small class="fs-6 fw-normal text-warning">AI</small></span>
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-end shadow">
-                        {% if current_user.is_authenticated %}
-                            {% if is_admin %}
+                </div>
+
+                <!-- CENTER SEARCH BAR -->
+                <div class="col col-md-6">
+                    <form class="search-form" action="{{ url_for('product.list_products') }}" method="GET">
+                        <div class="input-group">
+                            <input type="text" name="q" class="form-control search-bar-input border-0 py-2 px-3 shadow-none" placeholder="Search for products, brands and more..." aria-label="Search" value="{{ request.args.get('q', '') }}">
+                            <button class="btn search-bar-btn bg-warning text-dark px-3 fw-bold border-0" type="submit" aria-label="Search">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- RIGHT HEADER ACTIONS (WISHLIST, CART, USER) -->
+                <div class="col-auto col-md-3 d-flex justify-content-end align-items-center gap-3">
+                    
+                    {% set is_admin = current_user.is_authenticated and (current_user.role == 'admin' or (current_user.role.value is defined and current_user.role.value == 'admin')) %}
+
+                    <!-- DYNAMIC WISHLIST LINK -->
+                    {% if not is_admin %}
+                    <a href="{{ url_for('wishlist.view_wishlist') }}" class="header-action-link text-white text-decoration-none d-none d-sm-flex align-items-center gap-1 small fw-semibold position-relative">
+                        <i class="fa-regular fa-heart fs-5"></i>
+                        <span>Wishlist</span>
+                        <span class="badge rounded-pill bg-danger text-white fw-bold position-absolute top-0 start-100 translate-middle shadow-sm wishlist-badge-count" style="font-size: 0.65rem;">
+                            {{ wishlist_item_count if wishlist_item_count is defined else 0 }}
+                        </span>
+                    </a>
+                    {% endif %}
+
+                    <!-- DYNAMIC CART LINK -->
+                    {% if not is_admin %}
+                    <a href="{{ url_for('cart.view_cart') }}" class="header-action-link text-white text-decoration-none d-flex align-items-center gap-2 position-relative px-2 py-1 rounded bg-white bg-opacity-10">
+                        <i class="fa-solid fa-cart-shopping fs-5"></i>
+                        <span class="d-none d-sm-inline fw-semibold small">Cart</span>
+                        <span class="badge rounded-pill bg-warning text-dark fw-bold position-absolute top-0 start-100 translate-middle shadow-sm cart-badge-count">
+                            {{ cart_item_count if cart_item_count is defined else 0 }}
+                        </span>
+                    </a>
+                    {% endif %}
+
+                    <!-- USER ACCOUNT DROPDOWN -->
+                    <div class="dropdown">
+                        <a class="btn btn-outline-light btn-sm dropdown-toggle fw-semibold rounded-pill px-3 py-1 text-white border-white border-opacity-50" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-regular fa-circle-user me-1"></i>
+                            {% if current_user.is_authenticated %}
+                                <span class="text-truncate" style="max-width: 100px;">{{ current_user.first_name if current_user.first_name else current_user.username }}</span>
+                            {% else %}
+                                <span>Sign In</span>
+                            {% endif %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
+                            {% if current_user.is_authenticated %}
+                                {% if is_admin %}
+                                    <li>
+                                        <a class="dropdown-item fw-semibold text-danger" href="{{ url_for('admin.dashboard') }}">
+                                            <i class="fa-solid fa-user-shield me-2 text-danger"></i> Admin Dashboard
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item fw-semibold" href="{{ url_for('admin.list_products') }}">
+                                            <i class="fa-solid fa-boxes-stacked me-2 text-primary"></i> Product Management
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item fw-semibold" href="{{ url_for('admin.list_orders') }}">
+                                            <i class="fa-solid fa-truck-ramp-box me-2 text-warning"></i> Customer Orders
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li>
+                                        <a class="dropdown-item fw-semibold" href="{{ url_for('main.dashboard') }}">
+                                            <i class="fa-solid fa-gauge-high me-2 text-primary"></i> My Dashboard
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item fw-semibold" href="{{ url_for('order.my_orders') }}">
+                                            <i class="fa-solid fa-box-archive me-2 text-success"></i> My Orders
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item fw-semibold" href="{{ url_for('wishlist.view_wishlist') }}">
+                                            <i class="fa-solid fa-heart me-2 text-danger"></i> My Wishlist
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('profile.user_profile') }}">
+                                            <i class="fa-solid fa-id-card me-2 text-info"></i> My Profile
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item fw-semibold text-danger" href="{{ url_for('admin.dashboard') }}">
-                                        <i class="fa-solid fa-user-shield me-2 text-danger"></i> Admin Dashboard
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item fw-semibold" href="{{ url_for('admin.list_products') }}">
-                                        <i class="fa-solid fa-boxes-stacked me-2 text-primary"></i> Product Management
+                                    <a class="dropdown-item text-danger fw-semibold" href="{{ url_for('auth.logout') }}">
+                                        <i class="fa-solid fa-right-from-bracket me-2"></i> Logout
                                     </a>
                                 </li>
                             {% else %}
                                 <li>
-                                    <a class="dropdown-item fw-semibold" href="{{ url_for('main.dashboard') }}">
-                                        <i class="fa-solid fa-gauge-high me-2 text-primary"></i> My Dashboard
+                                    <a class="dropdown-item fw-semibold" href="{{ url_for('auth.login') }}">
+                                        <i class="fa-solid fa-right-to-bracket me-2 text-primary"></i> User Login
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="{{ url_for('profile.user_profile') }}">
-                                        <i class="fa-solid fa-id-card me-2 text-info"></i> My Profile
+                                    <a class="dropdown-item fw-semibold text-danger" href="{{ url_for('auth.admin_login') }}">
+                                        <i class="fa-solid fa-user-shield me-2 text-danger"></i> Admin Login
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item fw-semibold text-success" href="{{ url_for('auth.register') }}">
+                                        <i class="fa-solid fa-user-plus me-2 text-success"></i> Create Account
                                     </a>
                                 </li>
                             {% endif %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item text-danger fw-semibold" href="{{ url_for('auth.logout') }}">
-                                    <i class="fa-solid fa-right-from-bracket me-2"></i> Logout
-                                </a>
-                            </li>
-                        {% else %}
-                            <li>
-                                <a class="dropdown-item fw-semibold" href="{{ url_for('auth.login') }}">
-                                    <i class="fa-solid fa-right-to-bracket me-2 text-primary"></i> User Login
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item fw-semibold text-danger" href="{{ url_for('auth.admin_login') }}">
-                                    <i class="fa-solid fa-user-shield me-2 text-danger"></i> Admin Login
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item fw-semibold" href="{{ url_for('auth.register') }}">
-                                    <i class="fa-solid fa-user-plus me-2 text-success"></i> Register
-                                </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </li>
-            </ul>
+                        </ul>
+                    </div>
+
+                </div>
+
+            </div>
         </div>
     </div>
-</nav>
+
+    <!-- TIER 2: SECOND NAVIGATION SUB-HEADER BAR -->
+    <nav class="sub-nav-bar bg-light border-bottom py-2">
+        <div class="container">
+            <div class="d-flex align-items-center justify-content-between overflow-x-auto">
+                <ul class="nav sub-nav-links gap-1 flex-nowrap mb-0 text-nowrap">
+                    <li class="nav-item">
+                        <a class="nav-link text-dark fw-medium py-1 px-3 rounded-pill {% if request.endpoint == 'main.index' %}active-sub-nav bg-primary text-white{% endif %}" href="{{ url_for('main.index') }}">
+                            <i class="fa-solid fa-house me-1"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark fw-medium py-1 px-3 rounded-pill {% if request.endpoint == 'product.list_products' and not request.args.get('sort') %}active-sub-nav bg-primary text-white{% endif %}" href="{{ url_for('product.list_products') }}">
+                            <i class="fa-solid fa-layer-group me-1"></i> Categories
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark fw-medium py-1 px-3 rounded-pill {% if request.args.get('sort') == 'rating_desc' %}active-sub-nav bg-primary text-white{% endif %}" href="{{ url_for('product.list_products', sort='rating_desc') }}">
+                            <i class="fa-solid fa-tags me-1 text-danger"></i> Deals
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark fw-medium py-1 px-3 rounded-pill {% if request.args.get('sort') == 'newest' %}active-sub-nav bg-primary text-white{% endif %}" href="{{ url_for('product.list_products', sort='newest') }}">
+                            <i class="fa-solid fa-sparkles me-1 text-warning"></i> New Arrivals
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark fw-medium py-1 px-3 rounded-pill {% if request.endpoint == 'compare.compare_products' %}active-sub-nav bg-primary text-white{% endif %}" href="{{ url_for('compare.compare_products') }}">
+                            <i class="fa-solid fa-code-compare me-1 text-info"></i> Compare Specs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark fw-medium py-1 px-3 rounded-pill {% if request.endpoint == 'planner.shopping_planner' %}active-sub-nav bg-primary text-white{% endif %}" href="{{ url_for('planner.shopping_planner') }}">
+                            <i class="fa-solid fa-calculator me-1 text-success"></i> Planner
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark fw-medium py-1 px-3 rounded-pill {% if request.endpoint == 'ai.ai_assistant' %}active-sub-nav bg-primary text-white{% endif %}" href="{{ url_for('ai.ai_assistant') }}">
+                            <i class="fa-solid fa-wand-magic-sparkles me-1 text-primary"></i> AI Assistant
+                        </a>
+                    </li>
+                    <li class="nav-item d-none d-md-inline-block">
+                        <a class="nav-link text-dark fw-medium py-1 px-3 rounded-pill {% if request.endpoint == 'main.about' %}active-sub-nav bg-primary text-white{% endif %}" href="{{ url_for('main.about') }}">
+                            About Us
+                        </a>
+                    </li>
+                    <li class="nav-item d-none d-md-inline-block">
+                        <a class="nav-link text-dark fw-medium py-1 px-3 rounded-pill {% if request.endpoint == 'main.contact' %}active-sub-nav bg-primary text-white{% endif %}" href="{{ url_for('main.contact') }}">
+                            Contact Us
+                        </a>
+                    </li>
+                </ul>
+
+                <a href="{{ url_for('ai.ai_assistant') }}" class="btn btn-sm btn-warning fw-bold rounded-pill text-dark text-nowrap ms-2 d-none d-lg-flex align-items-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> AI Assistant
+                </a>
+            </div>
+        </div>
+    </nav>
+
+</header>
+

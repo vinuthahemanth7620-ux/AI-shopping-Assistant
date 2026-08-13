@@ -1,47 +1,94 @@
-<footer class="pt-5 pb-4">
+<footer id="footer" class="bg-dark text-white pt-5 pb-4 mt-auto">
     <div class="container">
         <div class="row g-4">
+            <!-- BRAND & CONNECT WITH US -->
             <div class="col-lg-4 col-md-6">
-                <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-robot text-warning me-2"></i>AI Shopping Assistant</h5>
-                <p class="text-muted">An intelligent web application that empowers shoppers to make smart purchasing decisions with AI recommendations, product comparisons, and budget planning.</p>
-                <div class="d-flex gap-3 mt-3">
-                    <a href="#" class="btn btn-sm btn-outline-light rounded-circle"><i class="fa-brands fa-github"></i></a>
-                    <a href="#" class="btn btn-sm btn-outline-light rounded-circle"><i class="fa-brands fa-linkedin"></i></a>
-                    <a href="#" class="btn btn-sm btn-outline-light rounded-circle"><i class="fa-brands fa-x-twitter"></i></a>
+                <div class="d-flex align-items-center mb-2">
+                    <div class="bg-warning text-dark rounded-circle p-2 me-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <span class="fs-4 fw-bold text-white">ShopSmart <small class="text-warning fs-6">AI</small></span>
+                </div>
+                <p class="text-secondary small mb-3">
+                    Your intelligent AI-powered shopping assistant. Discover personalized recommendations, compare product specs, and make smarter purchasing decisions instantly.
+                </p>
+
+                <h6 class="text-warning fw-bold mb-2 text-uppercase fs-6">Connect With Us</h6>
+                <div class="d-flex flex-column gap-2 small">
+                    <div class="d-flex align-items-center justify-content-between bg-secondary bg-opacity-25 p-2 rounded-3">
+                        <span class="fw-semibold text-white me-2">VINUTHA</span>
+                        <div class="d-flex gap-2">
+                            <a href="https://github.com/vinuthahemanth7620" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-light rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" title="VINUTHA GitHub" aria-label="VINUTHA GitHub">
+                                <i class="fa-brands fa-github"></i>
+                            </a>
+                            <a href="https://www.linkedin.com/in/vinutha467304310" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" title="VINUTHA LinkedIn" aria-label="VINUTHA LinkedIn">
+                                <i class="fa-brands fa-linkedin"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between bg-secondary bg-opacity-25 p-2 rounded-3">
+                        <span class="fw-semibold text-white me-2">THANUSHREE P.H</span>
+                        <div class="d-flex gap-2">
+                            <a href="https://github.com/thanushreeph14-del" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-light rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" title="THANUSHREE P.H GitHub" aria-label="THANUSHREE P.H GitHub">
+                                <i class="fa-brands fa-github"></i>
+                            </a>
+                            <a href="https://www.linkedin.com/in/thanushree-ph" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" title="THANUSHREE P.H LinkedIn" aria-label="THANUSHREE P.H LinkedIn">
+                                <i class="fa-brands fa-linkedin"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- QUICK LINKS -->
             <div class="col-lg-2 col-md-6">
-                <h6 class="text-white fw-semibold mb-3">Quick Navigation</h6>
-                <ul class="list-unstyled d-flex flex-column gap-2">
-                    <li><a href="{{ url_for('product.list_products') }}">All Products</a></li>
-                    <li><a href="{{ url_for('ai.ai_assistant') }}">AI Assistant</a></li>
-                    <li><a href="{{ url_for('compare.compare_products') }}">Product Comparison</a></li>
-                    <li><a href="{{ url_for('planner.shopping_planner') }}">Shopping Planner</a></li>
+                <h6 class="text-warning fw-bold mb-3 text-uppercase fs-6">Quick Links</h6>
+                <ul class="list-unstyled d-flex flex-column gap-2 small">
+                    <li><a href="{{ url_for('main.index') }}" class="text-white-50 text-decoration-none hover-white">Home</a></li>
+                    <li><a href="{{ url_for('product.list_products') }}" class="text-white-50 text-decoration-none hover-white">Categories</a></li>
+                    <li><a href="{{ url_for('product.list_products') }}" class="text-white-50 text-decoration-none hover-white">Products</a></li>
+                    <li><a href="{{ url_for('ai.ai_assistant') }}" class="text-white-50 text-decoration-none hover-white">AI Assistant</a></li>
+                    <li><a href="{{ url_for('compare.compare_products') }}" class="text-white-50 text-decoration-none hover-white">Compare Specs</a></li>
                 </ul>
             </div>
+
+            <!-- CUSTOMER SERVICE -->
             <div class="col-lg-3 col-md-6">
-                <h6 class="text-white fw-semibold mb-3">Technology Stack</h6>
-                <ul class="list-unstyled text-muted d-flex flex-column gap-1 fs-6">
-                    <li><i class="fa-brands fa-python me-2 text-warning"></i> Python Flask</li>
-                    <li><i class="fa-solid fa-database me-2 text-info"></i> MySQL Database</li>
-                    <li><i class="fa-brands fa-bootstrap me-2 text-primary"></i> Bootstrap 5</li>
-                    <li><i class="fa-solid fa-sparkles me-2 text-success"></i> Gemini AI API</li>
+                <h6 class="text-warning fw-bold mb-3 text-uppercase fs-6">Customer Care</h6>
+                <ul class="list-unstyled d-flex flex-column gap-2 small">
+                    {% if current_user.is_authenticated %}
+                        <li><a href="{{ url_for('main.dashboard') }}" class="text-white-50 text-decoration-none hover-white">My Account</a></li>
+                        <li><a href="{{ url_for('cart.view_cart') }}" class="text-white-50 text-decoration-none hover-white">My Cart</a></li>
+                        <li><a href="{{ url_for('profile.user_profile') }}" class="text-white-50 text-decoration-none hover-white">My Profile</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('auth.login') }}" class="text-white-50 text-decoration-none hover-white">Sign In / Register</a></li>
+                        <li><a href="{{ url_for('cart.view_cart') }}" class="text-white-50 text-decoration-none hover-white">View Cart</a></li>
+                    {% endif %}
+                    <li><a href="{{ url_for('main.about') }}" class="text-white-50 text-decoration-none hover-white">About Us</a></li>
+                    <li><a href="{{ url_for('main.contact') }}" class="text-white-50 text-decoration-none hover-white">Contact Us</a></li>
                 </ul>
             </div>
+
+            <!-- SECURE TRUST BADGES -->
             <div class="col-lg-3 col-md-6">
-                <h6 class="text-white fw-semibold mb-3">Project Metadata</h6>
-                <p class="text-muted small">Final Year Engineering Capstone Project</p>
-                <p class="text-muted small mb-0"><i class="fa-regular fa-clock me-1"></i> 3-Week Development Sprint</p>
+                <h6 class="text-warning fw-bold mb-3 text-uppercase fs-6">Shop Safely</h6>
+                <p class="text-white-50 small mb-2"><i class="fa-solid fa-shield-halved text-success me-2"></i> Verified MySQL Catalog Database</p>
+                <p class="text-white-50 small mb-2"><i class="fa-solid fa-bolt text-warning me-2"></i> AI Recommendation Engine</p>
+                <p class="text-white-50 small mb-0"><i class="fa-solid fa-lock text-info me-2"></i> Secure CSRF Session Protection</p>
             </div>
         </div>
-        <hr class="my-4 border-secondary">
+
+        <hr class="my-4 border-secondary opacity-50">
+
         <div class="row align-items-center">
             <div class="col-md-6 text-center text-md-start">
-                <p class="mb-0 text-muted small">&copy; 2026 AI Shopping Assistant. Built for Engineering Capstone Project.</p>
+                <p class="mb-0 text-white-50 small">&copy; 2026 ShopSmart AI Assistant. All rights reserved.</p>
             </div>
             <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
-                <span class="badge bg-secondary">v1.0.0 Foundation</span>
+                <span class="badge bg-secondary opacity-75 fw-normal">Flask + MySQL E-Commerce Platform</span>
             </div>
         </div>
     </div>
 </footer>
+
