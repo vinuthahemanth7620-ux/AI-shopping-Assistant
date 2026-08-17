@@ -32,8 +32,8 @@
                             {{ product.stock_badge_text }}
                         </span>
 
-                        <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid rounded max-h-100" style="max-height: 340px; object-fit: contain;"
-                             onerror="this.onerror=null; this.src='https://via.placeholder.com/500x500.png?text=Product+Image';">
+                        <img src="{{ product.image_url | clean_image_url }}" alt="{{ product.name }}" class="img-fluid rounded max-h-100" style="max-height: 340px; object-fit: contain;"
+                             onerror="this.onerror=null; this.src='/static/images/placeholder_product.svg';">
                     </div>
                 </div>
 
@@ -90,36 +90,71 @@
                         {% endif %}
                     </div>
 
-                    <!-- Description -->
-                    <div class="mb-4">
-                        <h5 class="fw-bold text-dark h6 mb-2">Description</h5>
-                        <p class="text-secondary leading-relaxed mb-0" style="white-space: pre-line;">
-                            {{ product.full_description }}
-                        </p>
+                    <!-- Short Summary Box -->
+                    <div class="p-3 bg-light rounded-3 border-start border-primary border-4 mb-4">
+                        <h6 class="fw-bold text-dark mb-1 small text-uppercase"><i class="fa-solid fa-circle-info text-primary me-1"></i> Product Overview</h6>
+                        <p class="text-secondary mb-0 small leading-relaxed">{{ product.short_description }}</p>
                     </div>
 
-                    <!-- Action Buttons -->
-                    <div class="mt-auto pt-3 border-top d-flex flex-wrap gap-3">
+                    <!-- Key Features (3-4 Bullet Points) -->
+                    {% if product.important_features %}
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-dark small text-uppercase tracking-wide mb-2"><i class="fa-solid fa-sparkles text-warning me-1"></i> Key Features</h6>
+                        <div class="row row-cols-1 row-cols-sm-2 g-2">
+                            {% for feat in product.important_features %}
+                            <div class="col">
+                                <div class="p-2 bg-white rounded border d-flex align-items-center h-100 shadow-2xs">
+                                    <i class="fa-solid fa-circle-check text-success me-2"></i>
+                                    <span class="small fw-semibold text-dark">{{ feat }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Quantity & Action Buttons -->
+                    <div class="mt-auto pt-3 border-top">
                         {% if product.is_available and product.is_active and product.stock_quantity > 0 %}
-                            <form action="{{ url_for('cart.add_to_cart', product_id=product.id) }}" method="POST" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold" id="addToCartBtn">
-                                    <i class="fa-solid fa-cart-shopping me-2"></i>Add to Cart
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <label class="fw-bold text-dark small mb-0">Quantity:</label>
+                                <div class="input-group input-group-sm" style="width: 120px;">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="let input=document.getElementById('quantityInput'); if(parseInt(input.value)>1) input.value=parseInt(input.value)-1;">-</button>
+                                    <input type="number" id="quantityInput" name="quantity" class="form-control text-center font-monospace fw-bold" value="1" min="1" max="{{ product.stock_quantity }}">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="let input=document.getElementById('quantityInput'); if(parseInt(input.value)<{{ product.stock_quantity }}) input.value=parseInt(input.value)+1;">+</button>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <form action="{{ url_for('cart.add_to_cart', product_id=product.id) }}" method="POST" class="d-inline" onsubmit="this.querySelector('[name=quantity]').value = document.getElementById('quantityInput').value;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button type="submit" class="btn btn-outline-primary px-4 py-2.5 fw-semibold" id="addToCartBtn">
+                                        <i class="fa-solid fa-cart-shopping me-2"></i>Add to Cart
+                                    </button>
+                                </form>
+
+                                <form action="{{ url_for('order.buy_now', product_id=product.id) }}" method="POST" class="d-inline" onsubmit="this.querySelector('[name=quantity]').value = document.getElementById('quantityInput').value;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button type="submit" class="btn btn-warning px-4 py-2.5 fw-bold text-dark shadow-sm" id="buyNowBtn">
+                                        <i class="fa-solid fa-bolt me-2"></i>Buy Now
+                                    </button>
+                                </form>
+
+                                <button type="button" class="btn btn-outline-danger px-3 py-2.5 fw-semibold wishlist-toggle-btn" data-product-id="{{ product.id }}" title="Add to Wishlist">
+                                    <i class="fa-regular fa-heart me-1 text-danger"></i>Wishlist
                                 </button>
-                            </form>
+                            </div>
                         {% else %}
-                            <button type="button" class="btn btn-secondary px-4 py-2 fw-semibold" id="addToCartBtn" disabled>
-                                <i class="fa-solid fa-ban me-2"></i>Out of Stock
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-secondary px-4 py-2 fw-semibold" disabled>
+                                    <i class="fa-solid fa-ban me-2"></i>Out of Stock
+                                </button>
+                                <a href="{{ url_for('product.list_products') }}" class="btn btn-outline-secondary px-4 py-2 fw-semibold">
+                                    <i class="fa-solid fa-arrow-left me-2"></i>Back to Products
+                                </a>
+                            </div>
                         {% endif %}
-
-                        <button type="button" class="btn btn-outline-danger px-4 py-2 fw-semibold wishlist-toggle-btn" data-product-id="{{ product.id }}" title="Add to Wishlist">
-                            <i class="fa-regular fa-heart me-2 text-danger"></i>Wishlist
-                        </button>
-
-                        <a href="{{ url_for('product.list_products') }}" class="btn btn-outline-secondary px-4 py-2 fw-semibold">
-                            <i class="fa-solid fa-arrow-left me-2"></i>Back to Products
-                        </a>
                     </div>
 
                 </div>
@@ -128,21 +163,24 @@
         </div>
     </div>
 
-    <!-- TECHNICAL SPECIFICATIONS SECTION -->
-    <div class="card border shadow-sm bg-white mb-4">
-        <div class="card-header bg-white py-3 border-bottom">
-            <h4 class="card-title mb-0 fw-bold fs-5 text-dark">
-                <i class="fa-solid fa-list-check text-primary me-2"></i>Technical Specifications
-            </h4>
+    <!-- TECHNICAL SPECIFICATIONS SECTION WITH COLLAPSIBLE FULL DETAILS -->
+    <div class="card border shadow-sm bg-white mb-4 rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold fs-6 text-dark">
+                <i class="fa-solid fa-list-check text-primary me-2"></i>Important Specifications
+            </h5>
+            <button class="btn btn-outline-primary btn-sm rounded-pill fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#fullSpecsCollapse" aria-expanded="false" aria-controls="fullSpecsCollapse">
+                <i class="fa-solid fa-angles-down me-1"></i> View Full Specifications
+            </button>
         </div>
         <div class="card-body p-4">
-            {% if product.specifications and product.specifications|length > 0 %}
+            {% if product.clean_specifications and product.clean_specifications|length > 0 %}
                 <div class="table-responsive">
-                    <table class="table table-striped table-bordered mb-0 align-middle">
+                    <table class="table table-striped table-bordered mb-0 align-middle small">
                         <tbody>
-                            {% for key, value in product.specifications.items() %}
+                            {% for key, value in product.clean_specifications.items() %}
                             <tr>
-                                <th class="bg-light text-dark fw-bold w-30" style="width: 30%;">{{ key }}</th>
+                                <th class="bg-light text-dark fw-bold" style="width: 35%;">{{ key }}</th>
                                 <td class="text-secondary">{{ value }}</td>
                             </tr>
                             {% endfor %}
@@ -150,8 +188,56 @@
                     </table>
                 </div>
             {% else %}
-                <p class="text-muted mb-0 italic">No additional technical specifications recorded for this product.</p>
+                <p class="text-muted mb-0 italic small">Standard product specifications loaded from database.</p>
             {% endif %}
+
+            <!-- Collapsible Full Raw Specifications & Complete Description -->
+            <div class="collapse mt-3 pt-3 border-top" id="fullSpecsCollapse">
+                <div class="alert alert-light border small text-muted mb-3">
+                    <i class="fa-solid fa-database me-1 text-primary"></i> <strong>Complete Database Data</strong> — Includes raw descriptions, manufacturer codes, package dimensions, and unformatted metadata.
+                </div>
+                <div class="mb-3">
+                    <h6 class="fw-bold text-dark small">Complete Product Description:</h6>
+                    <p class="text-secondary small leading-relaxed mb-0">{{ product.full_description }}</p>
+                </div>
+                {% if product.raw_specifications %}
+                <div>
+                    <h6 class="fw-bold text-dark small mb-2">Raw Metadata & Technical Specifications:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered bg-light mb-0 extra-small">
+                            <tbody>
+                                {% for key, value in product.raw_specifications.items() %}
+                                    {% if value is mapping %}
+                                        {% for k, v in value.items() %}
+                                        <tr>
+                                            <th class="bg-white text-muted" style="width: 35%;">{{ k if k else key }}</th>
+                                            <td>{{ v }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% elif value is sequence and value is not string %}
+                                        <tr>
+                                            <th class="bg-white text-muted" style="width: 35%;">{{ key }}</th>
+                                            <td>
+                                                <ul class="mb-0 ps-3">
+                                                    {% for item in value %}
+                                                    <li>{{ item }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </td>
+                                        </tr>
+                                    {% else %}
+                                        <tr>
+                                            <th class="bg-white text-muted" style="width: 35%;">{{ key }}</th>
+                                            <td>{{ value }}</td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 

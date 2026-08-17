@@ -9,11 +9,10 @@ class RecommendationScorer:
     Recommendation Scorer - Transparent Recommendation Scoring & Explanation Generator.
     
     Evaluates candidate products against parsed user requirements using configurable weights:
-    - Category Relevance: 30%
-    - Feature / Text Relevance: 25%
-    - Rating Score: 20%
-    - Price Suitability: 15%
-    - Review / Availability Confidence: 10%
+    - Category Relevance: 35%
+    - Feature / Text Relevance: 40%
+    - Rating Score: 15%
+    - Price Suitability: 10%
     
     Produces:
     - Normalized Recommendation Score (0% to 100%)
@@ -44,8 +43,11 @@ class RecommendationScorer:
         req_cat_ids = requirements.get('category_ids', [])
         p_type = requirements.get('product_type')
 
-        if req_cat_ids and cat_id in req_cat_ids:
-            cat_score = 1.0
+        if req_cat_ids:
+            if cat_id in req_cat_ids:
+                cat_score = 1.0
+            else:
+                cat_score = 0.0
         elif p_type:
             cat_name = product.category.name.lower() if product.category else ""
             if p_type in cat_name or p_type in p_name_lower:
@@ -53,7 +55,7 @@ class RecommendationScorer:
             else:
                 cat_score = 0.2
         else:
-            cat_score = 0.5  # Neutral if query is open-ended
+            cat_score = 0.6  # Open-ended query
 
         # 2. FEATURE / TEXT RELEVANCE (0.0 - 1.0)
         text_score = 0.0
@@ -74,10 +76,10 @@ class RecommendationScorer:
                 'photography': ['camera', 'dslr', 'lens', 'sensor', 'megapixels', '4k', 'video'],
                 'running': ['running', 'shoe', 'sneaker', 'cushion', 'mesh', 'athletic', 'sole'],
                 'cooking': ['mixer', 'blender', 'oven', 'microwave', 'cooker', 'kettle', 'fryer', 'induction', 'stove', 'cooktop'],
-                'gift': ['gift', 'present', 'luxury', 'watch', 'jewelry', 'beauty', 'set'],
+                'gift': ['gift', 'present', 'luxury', 'watch', 'jewelry', 'beauty', 'toy', 'set'],
                 'college': ['student', 'portable', 'lightweight', 'compact', 'laptop', 'backpack'],
                 'travel': ['travel', 'portable', 'lightweight', 'compact', 'wireless', 'durability'],
-                'gaming': ['gaming', 'game', 'gamer', 'rtx', 'gpu', 'graphics', 'refresh rate', 'hz']
+                'gaming': ['gaming', 'game', 'gamer', 'rtx', 'gpu', 'graphics', 'refresh rate', 'hz', 'console']
             }
             terms = use_case_terms.get(use_case, [use_case])
             for t in terms:
@@ -90,10 +92,18 @@ class RecommendationScorer:
 
         text_score = min(1.0, max(0.0, text_score))
 
+        p_intent = requirements.get('product_intent') or p_type
+        cat_family = requirements.get('category_family')
+
+        # BEAUTY / COSMETICS STRICT GATE:
+        if cat_family == 'beauty' or (p_intent and p_intent in ['beauty', 'makeup', 'cosmetics', 'lipstick', 'skincare', 'haircare']):
+            beauty_terms = ['makeup', 'cosmetic', 'lipstick', 'foundation', 'mascara', 'eyeliner', 'blush', 'concealer', 'beauty', 'skincare', 'skin care', 'hair care', 'epilator', 'nail', 'towel', 'wipes', 'eyelash', 'brush', 'palette', 'lotion', 'cream', 'face']
+            if cat_id not in [6, 27, 5] and not any(bt in p_name_lower for bt in beauty_terms):
+                return 0.0, "Unrelated category product filtered out."
+
         # STRICT RELEVANCE GATE:
-        # If explicit keywords exist and the product has 0 text match & low category score, drop to 0 score!
-        if keywords and text_score == 0.0 and cat_score < 0.8:
-            return 0.0, "Irrelevant product filtered out."
+        if req_cat_ids and cat_id not in req_cat_ids and cat_score == 0.0:
+            return 0.0, "Category mismatch."
 
         # 3. RATING SCORE (0.0 - 1.0)
         rating_score = min(1.0, max(0.0, rating_val / 5.0))
@@ -127,7 +137,7 @@ class RecommendationScorer:
             (price_score * w['price_suitability'])
         )
 
-        # Scale to 0 - 100 percentage without artificial 50% floor
+        # Scale to 0 - 100 percentage
         recommendation_score = round(min(99.0, max(0.0, composite_score * 100.0)), 1)
 
         # GENERATE NATURAL REASON EXPLANATION
@@ -167,5 +177,5 @@ class RecommendationScorer:
         if not reasons:
             reasons.append("matches your product search criteria")
 
-        reason_str = f"Recommended ({score:.0f}% match) because it " + ", ".join(reasons) + "."
+        reason_str = "Top selection because it " + ", ".join(reasons) + "."
         return reason_str

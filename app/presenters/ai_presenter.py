@@ -143,3 +143,26 @@ class AIPresenter:
         except Exception as e:
             logger.error(f"Error fetching chat history for user {user_id}: {str(e)}")
             return []
+
+    @classmethod
+    def clear_user_chat_history(cls, user_id=None):
+        """
+        Delete ChatHistory database records for logged-in user or clear guest session logs.
+        """
+        if user_id:
+            try:
+                ChatHistory.query.filter_by(user_id=user_id).delete()
+                db.session.commit()
+                return True, "Chat history deleted from database."
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Error clearing chat history for user {user_id}: {str(e)}")
+                return False, f"Error clearing database history: {str(e)}"
+        else:
+            try:
+                from flask import session
+                session['guest_chat_history'] = []
+                return True, "Guest session chat history cleared."
+            except Exception as e:
+                logger.error(f"Error clearing guest session chat history: {str(e)}")
+                return False, f"Error clearing guest history: {str(e)}"

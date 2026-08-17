@@ -18,27 +18,44 @@ def ai_assistant():
 
 
 @ai_bp.route('/chat', methods=['POST'])
+@ai_bp.route('/api/chat', methods=['POST'])
+@ai_bp.route('/api/assistant', methods=['POST'])
 def chat():
     """
-    POST /ai/chat
+    POST /ai/chat, /api/chat, /api/assistant
     Endpoint for sending user questions to AI Shopping Assistant.
     Expects JSON body: {"message": "User query text"}
     """
-    data = request.get_json(silent=True) or {}
-    message_text = data.get('message', '').strip()
-    
-    if not message_text:
-        # Fallback to form data if sent via standard form
-        message_text = request.form.get('message', '').strip()
+    try:
+        data = request.get_json(silent=True) or {}
+        message_text = data.get('message', '').strip()
+        
+        if not message_text:
+            # Fallback to form data if sent via standard form
+            message_text = request.form.get('message', '').strip()
 
-    user_id = current_user.id if (current_user and current_user.is_authenticated) else None
+        if not message_text:
+            return jsonify({
+                'success': False,
+                'ai_response': 'Please enter a valid question or product request.',
+                'recommended_products': []
+            }), 400
 
-    result, status_code = AIPresenter.process_chat_request(
-        message_text=message_text,
-        user_id=user_id
-    )
+        user_id = current_user.id if (current_user and current_user.is_authenticated) else None
 
-    return jsonify(result), status_code
+        result, status_code = AIPresenter.process_chat_request(
+            message_text=message_text,
+            user_id=user_id
+        )
+
+        return jsonify(result), status_code
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'ai_response': 'An error occurred while generating recommendations. Please try again.',
+            'recommended_products': [],
+            'error': str(e)
+        }), 200
 
 
 @ai_bp.route('/chat-history', methods=['GET'])
@@ -52,6 +69,17 @@ def chat_history():
 
     history = AIPresenter.get_user_chat_history(user_id=current_user.id, limit=30)
     return jsonify({'success': True, 'history': history}), 200
+
+
+@ai_bp.route('/clear-history', methods=['POST'])
+def clear_history():
+    """
+    POST /ai/clear-history
+    Clear ChatHistory database records for logged-in user or guest session history.
+    """
+    user_id = current_user.id if (current_user and current_user.is_authenticated) else None
+    success, message = AIPresenter.clear_user_chat_history(user_id=user_id)
+    return jsonify({'success': success, 'message': message}), 200 if success else 500
 
 
 @ai_bp.route('/recommendations')

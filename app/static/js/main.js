@@ -1,6 +1,30 @@
 /**
- * AI Shopping Assistant - Main Client Javascript Foundation
+ * Global Centralized Price Formatter
+ * Formats raw numeric/string values into clean Indian Rupee (₹) currency display.
+ * Safely handles null, undefined, empty string, NaN, and invalid numbers.
  */
+function priceFmt(value) {
+    if (value === null || value === undefined || value === '') {
+        return 'Price unavailable';
+    }
+    let num = Number(value);
+    if (isNaN(num) || !isFinite(num)) {
+        let s = String(value).trim();
+        if (s.startsWith('₹') || s.startsWith('$')) {
+            return s;
+        }
+        return 'Price unavailable';
+    }
+    try {
+        return '₹' + num.toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    } catch (e) {
+        return '₹' + num.toFixed(2);
+    }
+}
+window.priceFmt = priceFmt;
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("AI Shopping Assistant Client initialized.");

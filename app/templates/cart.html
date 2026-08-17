@@ -58,11 +58,7 @@
                                     <td class="ps-4 py-3">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="position-relative bg-light rounded p-2 text-center" style="width: 70px; height: 70px; min-width: 70px;">
-                                                {% if item.product.image_url %}
-                                                    <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" class="img-fluid h-100 object-fit-contain rounded">
-                                                {% else %}
-                                                    <i class="fa-solid fa-box text-secondary fs-3 mt-2"></i>
-                                                {% endif %}
+                                                <img src="{{ item.product.image_url | clean_image_url }}" alt="{{ item.product.name }}" class="img-fluid h-100 object-fit-contain rounded" onerror="this.onerror=null; this.src='/static/images/placeholder_product.svg';">
                                             </div>
                                             <div>
                                                 <a href="{{ url_for('product.product_details', product_id=item.product.id) }}" class="fw-semibold text-dark text-decoration-none hover-primary line-clamp-2" style="font-size: 0.95rem;">

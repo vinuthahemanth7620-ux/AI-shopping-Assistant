@@ -26,7 +26,7 @@ class RecommendationEngine:
     """
 
     @classmethod
-    def get_recommendations(cls, user_query, user_id=None, conversation_history=None, limit=5):
+    def get_recommendations(cls, user_query, user_id=None, conversation_history=None, limit=3):
         """
         Main entry point for generating product recommendations.
         """
@@ -43,6 +43,22 @@ class RecommendationEngine:
 
         # Step 1: Parse requirements
         reqs = RequirementParser.extract_requirements(query_text, conversation_history=conversation_history)
+
+        # Conversational intent handling (e.g., greetings, help, thanks, bye)
+        if reqs.get('is_conversation'):
+            return {
+                'success': True,
+                'requirements': reqs,
+                'products': [],
+                'is_fallback': False,
+                'fallback_message': None,
+                'user_message': query_text,
+                'is_conversation': True,
+                'conversational_intent': reqs.get('conversational_intent')
+            }
+
+        # Determine limit (3 by default, or requested limit 5 if specified)
+        actual_limit = reqs.get('requested_limit', limit)
 
         # Step 2 & 3: Database Candidate Retrieval & Validation
         candidates, is_fallback, fallback_msg = cls._retrieve_and_validate_candidates(reqs, limit=60)
@@ -66,12 +82,12 @@ class RecommendationEngine:
         else:
             scored_products.sort(key=lambda x: x[0], reverse=True)
 
-        top_products = [item[1] for item in scored_products[:limit]]
+        top_products = [item[1] for item in scored_products[:actual_limit]]
 
-        # If zero candidates pass relevance scoring, generate helpful clarification response
+        # If zero candidates pass relevance scoring, return empty list with clear message (NO UNRELATED PRODUCTS)
         if not top_products:
             is_fallback = True
-            fallback_msg = f"I couldn't find products matching '{query_text}' with high confidence in our catalog. Could you specify if you are looking for an induction cooktop, microwave oven, mixer grinder, laptop, smartphone, camera, or running shoes?"
+            fallback_msg = "Sorry, I couldn't find a matching product in our catalog."
 
         # Step 7: DB Persistence for Authenticated Users
         if user_id and top_products:
@@ -106,44 +122,31 @@ class RecommendationEngine:
         is_fallback = False
         fallback_msg = None
 
-        # FALLBACK MECHANISM: Progressively relax constraints if 0 exact matches found
+        # FALLBACK MECHANISM: Progressively relax price/rating constraints ONLY if 0 exact matches found
         if not valid_candidates:
             relaxed_reqs = dict(reqs)
-            relaxed_reason = []
 
-            # Step A: Moderate relaxation (budget 1.5x, min_rating 3.0)
-            if relaxed_reqs.get('max_price') is not None:
-                orig_max = relaxed_reqs['max_price']
-                relaxed_reqs['max_price'] = orig_max * 1.5
-                relaxed_reason.append(f"budget expanded to ₹{relaxed_reqs['max_price']:,.0f}")
+            # Relax budget and rating limits while preserving product_type/title filters
+            if relaxed_reqs.get('max_price') is not None or relaxed_reqs.get('min_rating') is not None:
+                relaxed_reqs['max_price'] = None
+                relaxed_reqs['min_price'] = None
+                relaxed_reqs['min_rating'] = None
 
-            if relaxed_reqs.get('min_rating') is not None:
-                relaxed_reqs['min_rating'] = 3.0
-                relaxed_reason.append("rating threshold adjusted")
-
-            fallback_candidates = cls._execute_sql_query(base_query, norm_price_expr, relaxed_reqs, limit=limit)
-            valid_candidates = cls._filter_valid_products(fallback_candidates, relaxed_reqs)
-
-            # Step B: Full constraint relaxation (remove price & rating limits for product category)
-            if not valid_candidates:
-                full_relaxed = dict(reqs)
-                full_relaxed['max_price'] = None
-                full_relaxed['min_price'] = None
-                full_relaxed['min_rating'] = None
-                relaxed_reason = ["price & rating constraints relaxed to show available category alternatives"]
-
-                fallback_candidates = cls._execute_sql_query(base_query, norm_price_expr, full_relaxed, limit=limit)
-                valid_candidates = cls._filter_valid_products(fallback_candidates, full_relaxed)
+                fallback_candidates = cls._execute_sql_query(base_query, norm_price_expr, relaxed_reqs, limit=limit)
+                valid_candidates = cls._filter_valid_products(fallback_candidates, relaxed_reqs)
 
             if valid_candidates:
                 is_fallback = True
-                fallback_msg = f"No exact match found for your initial request. Showing top closest options ({', '.join(relaxed_reason)})."
+                fallback_msg = "No exact match found within initial price/rating filter. Showing top closest options from catalog."
+            else:
+                is_fallback = True
+                fallback_msg = "Sorry, I couldn't find a matching product in our catalog."
 
         return valid_candidates, is_fallback, fallback_msg
 
     @classmethod
     def _execute_sql_query(cls, base_query, norm_price_expr, reqs, limit=60):
-        """Execute parameterized SQLAlchemy filter queries."""
+        """Execute parameterized SQLAlchemy filter queries with primary category prioritization."""
         q = base_query
 
         # Price Filter
@@ -167,8 +170,9 @@ class RecommendationEngine:
         target_acc = reqs.get('target_accessory')
 
         title_terms = list(keywords)
-        if p_type and p_type in RequirementParser.CATEGORY_TAXONOMY:
-            title_terms.extend(RequirementParser.CATEGORY_TAXONOMY[p_type]['primary_terms'][:6])
+        p_intent = reqs.get('product_intent') or p_type
+        if p_intent and p_intent in RequirementParser.CATEGORY_TAXONOMY:
+            title_terms.extend(RequirementParser.CATEGORY_TAXONOMY[p_intent]['primary_terms'][:8])
 
         if is_acc and target_acc in RequirementParser.ACCESSORY_ROUTING:
             routing = RequirementParser.ACCESSORY_ROUTING[target_acc]
@@ -179,12 +183,23 @@ class RecommendationEngine:
         for term in title_terms:
             if len(term) >= 2:
                 title_clauses.append(Product.name.ilike(f"%{term}%"))
-                title_clauses.append(Product.description.ilike(f"%{term}%"))
 
         candidates = []
 
-        # TIER 1A: Category ID Match
-        if cat_ids:
+        # TIER 1: Search Primary Category first (e.g. Cat 2 for mobile, Cat 1 for laptop, Cat 3 for headphones, Cat 4 for watch, Cat 38 for toys, Cat 35 for sports)
+        primary_cat = cat_ids[0] if cat_ids else None
+        if primary_cat and title_clauses:
+            candidates = q.filter(and_(Product.category_id == primary_cat, or_(*title_clauses)))\
+                .order_by(Product.rating.desc()).limit(limit).all()
+            if not candidates:
+                candidates = q.filter(Product.category_id == primary_cat)\
+                    .order_by(Product.rating.desc()).limit(limit).all()
+        elif primary_cat:
+            candidates = q.filter(Product.category_id == primary_cat)\
+                .order_by(Product.rating.desc()).limit(limit).all()
+
+        # TIER 2: Search across all secondary allowed cat_ids
+        if not candidates and len(cat_ids) > 1:
             if title_clauses:
                 candidates = q.filter(and_(Product.category_id.in_(cat_ids), or_(*title_clauses)))\
                     .order_by(Product.rating.desc()).limit(limit).all()
@@ -192,28 +207,24 @@ class RecommendationEngine:
                 candidates = q.filter(Product.category_id.in_(cat_ids))\
                     .order_by(Product.rating.desc()).limit(limit).all()
 
-        # TIER 2: Title & Description Multi-Field Search across all categories
-        if not candidates and title_clauses:
+        # TIER 3: Title Search across all categories if no category was specified
+        if not candidates and not cat_ids and title_clauses:
             candidates = q.filter(or_(*title_clauses)).order_by(Product.rating.desc()).limit(limit).all()
 
-        # TIER 3: Keyword Search
-        if not candidates and keywords:
-            kw_clauses = [or_(Product.name.ilike(f"%{kw}%"), Product.description.ilike(f"%{kw}%")) for kw in keywords if len(kw) >= 2]
-            if kw_clauses:
-                candidates = q.filter(or_(*kw_clauses)).order_by(Product.rating.desc()).limit(limit).all()
-
-        logger.info(f"[AI DEBUG LOG] Query: '{reqs.get('original_query')}' | Type: {p_type} | Cats: {cat_ids} | Keywords: {keywords} | SQL Candidates Retained: {len(candidates)}")
+        logger.info(f"[AI DEBUG LOG] Query: '{reqs.get('original_query')}' | Intent: {p_intent} | Cats: {cat_ids} | Keywords: {keywords} | SQL Candidates Retained: {len(candidates)}")
         return candidates
 
     @classmethod
     def _filter_valid_products(cls, candidates, reqs):
         """Strict relevance validation gate filtering out noise and non-matching accessories."""
         valid = []
-        p_type = reqs.get('product_type')
+        p_intent = reqs.get('product_intent') or reqs.get('product_type')
+        cat_family = reqs.get('category_family')
         is_acc = reqs.get('is_accessory_request', False)
         target_acc = reqs.get('target_accessory')
         max_p = reqs.get('max_price')
         min_p = reqs.get('min_price')
+        req_cat_ids = reqs.get('category_ids', [])
 
         for p in candidates:
             norm_price = float(p.normalized_price_inr)
@@ -247,56 +258,64 @@ class RecommendationEngine:
                 valid.append(p)
                 continue
 
-            # Primary request check & Strict Noise / Accessory Purging
-            if p_type and not is_acc:
+            # If user explicitly targeted specific categories and candidate is from an unrelated category
+            if req_cat_ids and cat_id not in req_cat_ids:
+                continue
+
+            # Strict Product Intent & Category Family Gating
+            if p_intent and not is_acc:
                 # Disqualify earphones/headphones if user explicitly asked for non-audio product
-                if p_type != 'headphone':
+                if p_intent not in ['headphone', 'audio', 'musical_instruments']:
                     if re.search(r'\b(headphone|headphones|earphone|earphones|earbud|earbuds|airpods|headset)s?\b', p_name_lower):
                         continue
 
-                # 1. Primary Mobile Purge
-                if p_type == 'mobile':
+                # Beauty / Cosmetics Gating
+                if cat_family == 'beauty' or p_intent in ['beauty', 'makeup', 'cosmetics', 'lipstick', 'skincare', 'haircare']:
+                    if any(bad in p_name_lower for bad in ['refrigerator', 'mini fridge', 'stove', 'cooktop', 'microwave', 'oven', 'vanity table', 'bed frame', 'screwdriver', 'flag', 'volleyball', 'vacuum', 'dishwasher', 'laptop', 'headphone', 'phone', 'tumbler', 'coffee mug', 'straw cup', 'teacher gift']):
+                        continue
+
+                # Specific Product Type Extra Gates
+                tax_info = RequirementParser.CATEGORY_TAXONOMY.get(p_intent)
+                if tax_info:
+                    dis_accs = tax_info.get('disqualifying_accessories', [])
+                    if any(re.search(r'\b' + re.escape(dis) + r'\b', p_name_lower) for dis in dis_accs):
+                        continue
+
+                if p_intent == 'mobile':
                     if cat_id not in [2, 17]:
                         continue
                     if any(bad in p_name_lower for bad in ['case', 'cover', 'protector', 'tempered glass', 'charger', 'cable', 'mount', 'lanyard', 'holster', 'armband', 'ring holder', 'selfie stick', 'skin', 'replacement', 'stylus', 'grip', 'bracket', 'pouch', 'watch', 'smart watch', 'earphone', 'headphone', 'headset', 'compatible', 'film', 'glass', 'lens protector']):
                         continue
-                    if not any(pt in p_name_lower for pt in ['phone', 'phones', 'mobile', 'mobiles', 'smartphone', 'smartphones', 'cellphone', 'iphone', 'galaxy', 'pixel', 'redmi', 'oneplus', 'android']):
-                        continue
 
-                # 2. Primary Headphone Purge
-                elif p_type == 'headphone':
-                    if any(bad in p_name_lower for bad in ['case', 'cover', 'stand', 'holder', 'hanger', 'eartips', 'ear pad', 'cushion', 'cable', 'adapter', 'amp', 'amplifier', 'plug', 'cleaner', 'pouch', 'organizer', 'mp3 player', 'watch', 'gps']):
-                        continue
-                    if not any(pt in p_name_lower for pt in ['headphone', 'headphones', 'earphone', 'earphones', 'earbud', 'earbuds', 'headset', 'headsets', 'airpods', 'aonic', 'soundcore', 'bose', 'sennheiser']):
-                        continue
-                    if cat_id not in [3, 28, 33, 17] and not any(r_term in p_name_lower for r_term in ['airpods', 'headphone', 'earbud', 'headset']):
-                        continue
-
-                # 3. Primary Laptop Purge
-                elif p_type == 'laptop':
+                elif p_intent == 'laptop':
                     if any(bad in p_name_lower for bad in ['motherboard', 'bag', 'backpack', 'sleeve', 'case', 'skin', 'stand', 'holder', 'charger', 'adapter', 'cable', 'protector', 'keyboard cover', 'docking station', 'cooling pad', 'ram', 'memory module', 'screen replacement', 'battery', 'decal', 'mouse pad', 'mousepad', 'mouse', 'keyboard', 'board']):
                         continue
-                    if not any(pt in p_name_lower for pt in ['laptop', 'notebook', 'macbook', 'chromebook', 'ultrabook', 'aspire', 'ideapad', 'thinkpad', 'pavilion', 'legion', 'zenbook', 'vivobook', 'inspiron', 'latitude', 'xps', 'zephyrus', 'surface pro']):
+
+                elif p_intent == 'watch':
+                    if any(bad in p_name_lower for bad in ['watch band', 'watch strap', 'watchband', 'bezel', 'screen protector', 'watch charger', 'charging cable', 'watch case', 'watch stand', 'watch winder']):
                         continue
 
-                # 4. Primary Camera Purge
-                elif p_type == 'camera':
-                    if any(bad in p_name_lower for bad in ['backdrop', 'background', 'bag', 'case', 'strap', 'tripod', 'monopod', 'lens', 'filter', 'sd card', 'memory card', 'mount', 'bracket', 'cage', 'light', 'screen protector', 'nvr', 'level', 'screw', 'cap', 'cover', 'holder', 'rubber', 'mask', 'housing', 'plate', 'cable', 'charger', 'battery', 'adapter']):
-                        continue
-                    if not any(pt in p_name_lower for pt in ['camera', 'dslr', 'camcorder', 'action camera', 'dash cam', 'digital camera', 'vlogging camera', 'mirrorless camera']):
+                elif p_intent == 'cooktop':
+                    if any(bad in p_name_lower for bad in ['knob', 'mat', 'pad', 'cord', 'organizer', 'rack', 'holder', 'stand', 'spatula', 'spoon', 'towel', 'cleaner']):
                         continue
 
-                # 5. Primary Watch Purge
-                elif p_type == 'watch':
-                    if any(bad in p_name_lower for bad in ['band', 'strap', 'watchband', 'bezel', 'screen protector', 'charger', 'cable', 'case', 'stand', 'winder', 'candle', 'lamp']):
-                        continue
-                    if not any(pt in p_name_lower for pt in ['watch', 'watches', 'smartwatch', 'smartwatches', 'fitbit', 'timepiece', 'chronograph']):
+                elif p_intent == 'washing_machine':
+                    if any(bad in p_name_lower for bad in ['hose', 'pipe', 'cover', 'inlet', 'drain', 'vibration pad', 'foot pad', 'door lock', 'lint filter', 'cleaner', 'tablet']):
                         continue
 
-                # 6. Primary Shoe Purge
-                elif reqs.get('use_case') == 'running' or p_type == 'shoe':
-                    if not any(st in p_name_lower for st in ['shoe', 'shoes', 'sneaker', 'sneakers', 'footwear', 'running shoe', 'athletic shoe']):
+                elif p_intent == 'mixer_grinder':
+                    if any(bad in p_name_lower for bad in ['blade', 'lid', 'gasket', 'ring', 'pestle', 'nail grinder', 'pet grinder', 'mat', 'organizer']):
                         continue
+
+                elif p_intent == 'toys_games':
+                    if any(bad in p_name_lower for bad in ['dewalt', 'battery adapter', 'power wheels adapter', 'catnip', 'chew toy', 'hamster', 'screen protector']):
+                        continue
+
+                elif p_intent == 'pet_supplies':
+                    if any(bad in p_name_lower for bad in ['condiment container', 'faucet splash', 'sink splash', 'power wheels']):
+                        continue
+
+                elif reqs.get('use_case') == 'running' or p_intent == 'shoe':
                     if any(bad in p_name_lower for bad in ['necklace', 'pendant', 'ring', 'jewelry', 'socks', 'lace', 'sandal', 'slipper', 'heel', 'cosplay', 'shirt', 'pant']):
                         continue
 

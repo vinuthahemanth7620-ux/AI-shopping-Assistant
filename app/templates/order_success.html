@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Order Confirmation - ShopSmart AI{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+
+            <!-- Success Card -->
+            <div class="card border shadow-sm rounded-4 overflow-hidden text-center bg-white p-4">
+                
+                <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-3 shadow-sm" style="width: 72px; height: 72px;">
+                    <i class="fa-solid fa-check display-5"></i>
+                </div>
+
+                <h2 class="fw-bold text-dark mb-1">Order Placed Successfully!</h2>
+                <p class="text-muted small mb-4">Thank you for your purchase. We are preparing your order for shipment.</p>
+
+                <!-- Order Details Summary Box -->
+                <div class="bg-light rounded-3 p-3 text-start border mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                        <span class="text-muted small fw-bold text-uppercase">Order Number:</span>
+                        <span class="font-monospace fw-bold text-primary fs-6">{{ order.order_number }}</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Date & Time:</span>
+                        <span class="small fw-semibold text-dark">{{ order.created_at.strftime('%B %d, %Y at %I:%M %p') }}</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Payment Method:</span>
+                        <span class="badge bg-secondary rounded-pill">{{ order.payment_method }}</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">Shipping Address:</span>
+                        <span class="small text-truncate max-w-250 text-end text-dark" title="{{ order.shipping_address }}, {{ order.city }}">{{ order.city }}, {{ order.postal_code }}</span>
+                    </div>
+                </div>
+
+                <!-- Order Line Items -->
+                <div class="text-start mb-4">
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Ordered Items</h6>
+                    {% for item in order.items %}
+                    <div class="d-flex align-items-center justify-content-between py-2 {% if not loop.last %}border-bottom{% endif %}">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-light p-1 rounded border" style="width: 48px; height: 48px;">
+                                <img src="{{ item.product.primary_image_url if item.product else '/static/images/placeholder_product.svg' }}" alt="{{ item.product_name }}" class="img-fluid h-100 object-fit-contain mx-auto d-block" onerror="this.onerror=null; this.src='/static/images/placeholder_product.svg';">
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fs-6 fw-bold text-dark text-truncate max-w-250">{{ item.product_name }}</h6>
+                                <span class="text-muted extra-small">Qty: {{ item.quantity }} × ₹{{ item.unit_price|float }}</span>
+                            </div>
+                        </div>
+                        <span class="fw-bold font-monospace text-dark">{{ item.subtotal_formatted }}</span>
+                    </div>
+                    {% endfor %}
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-2">
+                        <span class="fw-bold text-dark fs-5">Total Paid:</span>
+                        <span class="fs-4 fw-extrabold text-success font-monospace">{{ order.total_amount_formatted }}</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                    <a href="{{ url_for('product.list_products') }}" class="btn btn-primary px-4 py-2 rounded-pill fw-bold">
+                        <i class="fa-solid fa-bag-shopping me-2"></i>Continue Shopping
+                    </a>
+                    <a href="{{ url_for('order.my_orders') }}" class="btn btn-outline-secondary px-4 py-2 rounded-pill fw-semibold">
+                        <i class="fa-solid fa-box-archive me-2"></i>View My Orders
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

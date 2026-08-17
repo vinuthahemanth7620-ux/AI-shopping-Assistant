@@ -9,32 +9,75 @@ class ProductPresenter:
     Follows MVP Architecture.
     """
 
-    DEFAULT_IMAGE = "/static/images/placeholder_product.png"
+    DEFAULT_IMAGE = "/static/images/placeholder_product.svg"
 
     @classmethod
     def clean_image_url(cls, raw_url):
-        """Clean and normalize image URLs, handling markdown syntax and placeholders."""
-        if not raw_url:
-            return cls.DEFAULT_IMAGE
-        
-        url_str = str(raw_url).strip()
-        if not url_str:
+        """
+        Centralized, reusable image URL normalizer.
+        Handles:
+        - Direct HTTP/HTTPS URLs
+        - Relative static paths (/static/...)
+        - Markdown image links ![alt](url) or [text](url)
+        - JSON/Python lists of URLs ["url1", "url2"]
+        - Null, None, NaN, empty strings, invalid strings
+        - Unsafe script schemes (javascript:, vbscript:, data:text/html)
+        """
+        if raw_url is None:
             return cls.DEFAULT_IMAGE
 
-        # Extract URL from Markdown link/image format [url](url) or ![alt](url)
+        if isinstance(raw_url, (list, tuple)):
+            for item in raw_url:
+                cleaned = cls.clean_image_url(item)
+                if cleaned != cls.DEFAULT_IMAGE:
+                    return cleaned
+            return cls.DEFAULT_IMAGE
+
+        url_str = str(raw_url).strip()
+        if not url_str or url_str.lower() in ['none', 'nan', 'null', '[]', '{}', 'undefined']:
+            return cls.DEFAULT_IMAGE
+
+        # Prevent unsafe URI schemes
+        if url_str.lower().startswith(('javascript:', 'vbscript:', 'data:text/html')):
+            return cls.DEFAULT_IMAGE
+
+        # 1. Parse JSON list string if formatted like ["url1", "url2"]
+        if url_str.startswith('[') and url_str.endswith(']'):
+            try:
+                import json
+                parsed = json.loads(url_str)
+                if isinstance(parsed, list):
+                    for item in parsed:
+                        cleaned = cls.clean_image_url(item)
+                        if cleaned != cls.DEFAULT_IMAGE:
+                            return cleaned
+            except Exception:
+                pass
+
+        # 2. Extract URL from Markdown link/image format ![alt](url) or [text](url)
         md_match = re.search(r'\((https?://[^\)]+)\)', url_str)
         if md_match:
             return md_match.group(1).strip()
 
-        # Extract HTTP/HTTPS URL from bracket syntax [http...]
-        bracket_match = re.search(r'https?://[^\s\]\)\"\']+', url_str)
-        if bracket_match:
-            return bracket_match.group(0).strip()
+        # 3. Extract HTTP/HTTPS URL from any surrounding text or brackets
+        http_match = re.search(r'https?://[^\s\]\)\"\']+', url_str)
+        if http_match:
+            extracted = http_match.group(0).strip()
+            extracted = re.sub(r'[\,\"\']+$', '', extracted)
+            return extracted
 
-        if not (url_str.startswith('http://') or url_str.startswith('https://') or url_str.startswith('/')):
-            return f"/{url_str}"
+        # 4. Handle relative local static paths
+        if url_str.startswith('static/') or url_str.startswith('/static/'):
+            if not url_str.startswith('/'):
+                return f"/{url_str}"
+            return url_str
 
-        return url_str
+        # 5. Relative paths starting with /
+        if url_str.startswith('/') and len(url_str) > 1 and not url_str.startswith('//'):
+            return url_str
+
+        # 6. Fallback if not a valid URL or path
+        return cls.DEFAULT_IMAGE
 
     @classmethod
     def get_normalized_price_inr(cls, product_or_price, category_id=None):
@@ -100,8 +143,10 @@ class ProductPresenter:
 
         image_url = cls.clean_image_url(product.image_url)
 
-        desc = product.description or ""
-        short_desc = (desc[:115] + '...') if len(desc) > 115 else desc
+        from app.services.product_processor import ProductInformationProcessor
+
+        summary = product.display_short_summary if hasattr(product, 'display_short_summary') else ProductInformationProcessor.generate_short_summary(product)
+        features = product.display_key_features if hasattr(product, 'display_key_features') else ProductInformationProcessor.extract_important_features(product, limit=3)
 
         in_stock = product.is_available and product.is_active and (product.stock_quantity > 0)
         norm_p = cls.get_normalized_price_inr(product)
@@ -121,7 +166,8 @@ class ProductPresenter:
             'price_raw': norm_p,
             'price_raw_db': float(product.price) if product.price is not None else 0.0,
             'rating': cls.format_rating(product.rating),
-            'short_description': short_desc,
+            'short_description': summary,
+            'important_features': features[:3],
             'image_url': image_url or cls.DEFAULT_IMAGE,
             'stock_quantity': product.stock_quantity,
             'is_available': in_stock,
@@ -136,14 +182,20 @@ class ProductPresenter:
     def format_product_detail(cls, product):
         """
         Format a single Product model instance for the product detail view.
+        Separates clean summary/features from complete collapsible specifications.
         """
         card_data = cls.format_product_card(product)
         if not card_data:
             return None
 
-        # Process specifications
-        specs = product.specifications if isinstance(product.specifications, dict) else {}
+        from app.services.product_processor import ProductInformationProcessor
+
+        # Extract raw specifications
+        raw_specs = product.specifications if isinstance(product.specifications, dict) else {}
         
+        # Filter high-value specifications (exclude ASIN, package dimensions, internal metadata)
+        clean_specs = product.display_important_specifications if hasattr(product, 'display_important_specifications') else ProductInformationProcessor.extract_important_specifications(product)
+
         # Build Breadcrumbs
         breadcrumbs = [
             {'title': 'Home', 'url': '/'},
@@ -154,7 +206,11 @@ class ProductPresenter:
 
         card_data.update({
             'full_description': product.description or "No detailed description available.",
-            'specifications': specs,
+            'short_description': product.display_short_summary,
+            'important_features': product.display_key_features[:4],
+            'clean_specifications': clean_specs,
+            'raw_specifications': raw_specs,
+            'specifications': clean_specs if clean_specs else raw_specs,
             'created_at_formatted': product.created_at.strftime('%B %d, %Y') if product.created_at else None,
             'breadcrumbs': breadcrumbs
         })

@@ -47,13 +47,18 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer Component -->
+    <!-- Footer Navigation -->
     {% include 'components/footer.html' %}
+
+    <!-- Floating AI Assistant Quick-Access Button -->
+    <a href="{{ url_for('ai.ai_assistant') }}" id="floatingAiChatBtn" class="position-fixed bottom-0 end-0 m-4 btn btn-warning btn-lg rounded-circle shadow-lg d-flex align-items-center justify-content-center border border-2 border-white" style="width: 58px; height: 58px; z-index: 1050; transition: transform 0.2s ease;" title="AI Shopping Assistant">
+        <i class="fa-solid fa-robot fs-3 text-dark"></i>
+    </a>
 
     <!-- Bootstrap 5.3 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Custom Main JS & AI Chat JS -->
+    <!-- Custom Main & AI Chat JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ai_chat.js') }}"></script>
 

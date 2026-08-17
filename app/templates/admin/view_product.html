@@ -36,7 +36,7 @@
                 
                 <!-- Product Image Column -->
                 <div class="col-md-5 text-center bg-light p-3 rounded-3 d-flex align-items-center justify-content-center" style="min-height: 250px;">
-                    <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid rounded max-h-250" style="max-height: 240px; object-fit: contain;" onerror="this.src='https://via.placeholder.com/300';">
+                    <img src="{{ product.image_url | clean_image_url }}" alt="{{ product.name }}" class="img-fluid rounded max-h-250" style="max-height: 240px; object-fit: contain;" onerror="this.onerror=null; this.src='/static/images/placeholder_product.svg';">
                 </div>
 
                 <!-- Product Attributes Column -->

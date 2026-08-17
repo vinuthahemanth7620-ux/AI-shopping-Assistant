@@ -95,5 +95,9 @@ def run_ai_retrieval_tests():
         print("=" * 80)
 
 
+def test_ai_retrieval_system():
+    run_ai_retrieval_tests()
+
+
 if __name__ == '__main__':
     run_ai_retrieval_tests()

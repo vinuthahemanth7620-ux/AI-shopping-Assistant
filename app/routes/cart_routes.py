@@ -214,3 +214,43 @@ def clear_cart():
 
     return redirect(url_for('cart.view_cart'))
 
+
+@cart_bp.route('/smart-analysis')
+@login_required
+def smart_analysis():
+    """
+    Smart Cart Analysis Route.
+    Analyzes current user's cart items, calculates totals, and suggests complementary items.
+    """
+    cart_items = Cart.query.filter_by(user_id=current_user.id).all()
+    cart_total = sum(item.subtotal for item in cart_items)
+    
+    cat_ids = [item.product.category_id for item in cart_items if item.product and item.product.category_id]
+    
+    if cat_ids:
+        suggestions = Product.query.filter(
+            Product.is_active == True,
+            ~Product.category_id.in_(cat_ids)
+        ).order_by(Product.rating.desc()).limit(4).all()
+    else:
+        suggestions = Product.query.filter_by(is_active=True).order_by(Product.rating.desc()).limit(4).all()
+
+    if wants_json(request):
+        return jsonify({
+            'success': True,
+            'cart_count': len(cart_items),
+            'cart_total': cart_total,
+            'cart_total_formatted': f"₹{cart_total:,.2f}",
+            'suggestions_count': len(suggestions)
+        }), 200
+
+    return render_template(
+        'cart.html',
+        cart_items=cart_items,
+        cart_total=cart_total,
+        cart_total_formatted=f"₹{cart_total:,.2f}",
+        smart_analysis_active=True,
+        suggestions=suggestions
+    )
+
+

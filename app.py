@@ -5,11 +5,16 @@ from app import create_app, db
 
 app = create_app()
 
+import sys
+
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # Database Connection Validation Test on Flask App Startup
 with app.app_context():
     try:
         db.session.execute(text("SELECT 1"))
-        print("✅ MySQL Database Connected Successfully")
+        print("[OK] MySQL Database Connected Successfully")
 
         # Create database tables if they do not exist
         db.create_all()

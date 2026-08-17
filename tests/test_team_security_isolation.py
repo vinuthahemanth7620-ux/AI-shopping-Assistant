@@ -118,9 +118,9 @@ def test_team_security_isolation():
         else: failed += 1
 
         # ---------------------------------------------------------------------
-        # TEST 6: CONTACT US PAGE DISPLAYS EXCLUSIVELY THE 2 OFFICIAL MEMBERS
+        # TEST 6: CONTACT US PAGE DISPLAYS EXCLUSIVELY THE 2 OFFICIAL MEMBERS IN THANUSHREE (LEFT) & VINUTHA (RIGHT) ORDER
         # ---------------------------------------------------------------------
-        print("\n--- TEST 6: Contact Us Display Integrity ---")
+        print("\n--- TEST 6: Contact Us Display Integrity & Order ---")
         res_c = client.get('/contact')
         html_c = res_c.data.decode('utf-8')
 
@@ -128,8 +128,12 @@ def test_team_security_isolation():
         t_present = 'THANUSHREE P.H' in html_c and 'Frontend & UI/UX Developer' in html_c
         others_absent = 'Rahul Applicant' not in html_c and 'New Shopper' not in html_c
 
-        t6_ok = v_present and t_present and others_absent
-        print(f"6. Contact Us Page Displays Exclusively VINUTHA and THANUSHREE P.H: {'PASSED' if t6_ok else 'FAILED'}")
+        idx_t = html_c.find('THANUSHREE P.H')
+        idx_v = html_c.find('VINUTHA')
+        order_ok = idx_t != -1 and idx_v != -1 and idx_t < idx_v
+
+        t6_ok = v_present and t_present and others_absent and order_ok
+        print(f"6. Contact Us Page Displays Exclusively VINUTHA and THANUSHREE P.H (Thanushree Left, Vinutha Right): {'PASSED' if t6_ok else 'FAILED'}")
         if t6_ok: passed += 1
         else: failed += 1
 

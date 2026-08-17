@@ -95,11 +95,17 @@ class AdminPresenter:
         description = form_data.get('description', '').strip()
         cleaned['description'] = description
 
-        # 8. Image URL
-        image_url = form_data.get('image_url', '').strip()
-        if image_url and not (image_url.startswith('http://') or image_url.startswith('https://') or image_url.startswith('/')):
-            image_url = f"/{image_url}"
-        cleaned['image_url'] = image_url
+        # 8. Image URL Normalization
+        raw_image_url = form_data.get('image_url', '').strip()
+        if raw_image_url:
+            cleaned_img = ProductPresenter.clean_image_url(raw_image_url)
+            # If valid clean URL or relative static path, store clean string
+            if cleaned_img != ProductPresenter.DEFAULT_IMAGE or raw_image_url.strip() in [ProductPresenter.DEFAULT_IMAGE, '']:
+                cleaned['image_url'] = cleaned_img if cleaned_img != ProductPresenter.DEFAULT_IMAGE else raw_image_url
+            else:
+                cleaned['image_url'] = cleaned_img
+        else:
+            cleaned['image_url'] = ProductPresenter.DEFAULT_IMAGE
 
         # 9. Availability
         cleaned['is_available'] = form_data.get('is_available', 'true').lower() in ['true', '1', 'on', 'yes']
@@ -124,9 +130,11 @@ class AdminPresenter:
         else:
             cleaned['specifications'] = {}
 
-        # SKU & Slug optional
-        cleaned['sku'] = form_data.get('sku', '').strip()
-        cleaned['slug'] = form_data.get('slug', '').strip()
+        # Auto-extract derived display summary and key features using ProductInformationProcessor
+        from app.services.product_processor import ProductInformationProcessor
+        processed = ProductInformationProcessor.process_product(cleaned)
+        cleaned['short_description'] = processed['short_description']
+        cleaned['important_features'] = processed['important_features']
 
         is_valid = len(errors) == 0
         return is_valid, errors, cleaned

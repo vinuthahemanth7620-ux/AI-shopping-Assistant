@@ -193,8 +193,8 @@
                                 </span>
                                 
                                 <a href="{{ url_for('product.product_details', product_id=product.id) }}" class="d-flex align-items-center justify-content-center h-100">
-                                    <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid max-h-100 product-img-fit"
-                                         onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300.png?text=Product+Image';">
+                                    <img src="{{ product.image_url | clean_image_url }}" alt="{{ product.name }}" class="img-fluid max-h-100 product-img-fit"
+                                         onerror="this.onerror=null; this.src='/static/images/placeholder_product.svg';">
                                 </a>
                             </div>
 
@@ -233,24 +233,41 @@
                                 </div>
 
                                 <!-- Short Description -->
-                                <p class="card-text text-muted small mb-3 flex-grow-1 line-clamp-2">
+                                <p class="card-text text-muted extra-small mb-2 text-truncate" title="{{ product.short_description }}">
                                     {{ product.short_description }}
                                 </p>
+
+                                <!-- Key Features List (Max 3 items) -->
+                                {% if product.important_features %}
+                                <ul class="list-unstyled extra-small text-secondary mb-3 ps-0 border-top pt-2">
+                                    {% for feat in product.important_features[:3] %}
+                                    <li class="text-truncate mb-1">
+                                        <i class="fa-solid fa-circle-check text-success me-1 extra-small"></i>{{ feat }}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                {% endif %}
 
                                 <!-- Price & Action -->
                                 <div class="pt-2 border-top mt-auto d-flex align-items-center justify-content-between flex-wrap gap-2">
                                     <div>
                                         <div class="product-price text-dark font-monospace fw-bold">{{ product.price_formatted }}</div>
                                     </div>
-                                    <div class="d-flex gap-2">
+                                    <div class="d-flex gap-1">
                                         <form action="{{ url_for('cart.add_to_cart', product_id=product.id) }}" method="POST" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-primary btn-sm fw-semibold" title="Add to Cart">
+                                            <button type="submit" class="btn btn-outline-primary btn-sm fw-semibold px-2 py-1 extra-small" title="Add to Cart">
                                                 <i class="fa-solid fa-cart-shopping me-1"></i> Cart
                                             </button>
                                         </form>
-                                        <a href="{{ url_for('product.product_details', product_id=product.id) }}" class="btn btn-outline-secondary btn-sm fw-semibold">
-                                            Details <i class="fa-solid fa-chevron-right ms-1"></i>
+                                        <form action="{{ url_for('order.buy_now', product_id=product.id) }}" method="POST" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-warning btn-sm fw-bold px-2 py-1 extra-small text-dark shadow-2xs" title="Buy Now">
+                                                <i class="fa-solid fa-bolt me-1"></i> Buy
+                                            </button>
+                                        </form>
+                                        <a href="{{ url_for('product.product_details', product_id=product.id) }}" class="btn btn-outline-secondary btn-sm fw-semibold px-2 py-1 extra-small">
+                                            Details
                                         </a>
                                     </div>
                                 </div>

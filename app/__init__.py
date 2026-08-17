@@ -47,6 +47,20 @@ def create_app(config_name=None):
 
     # Initialize Extensions with App
     db.init_app(app)
+
+    # Test Database Connection & Fallback to SQLite if MySQL fails
+    if not app.config.get('TESTING'):
+        try:
+            with app.app_context():
+                with db.engine.connect() as conn:
+                    conn.execute(db.text("SELECT 1"))
+        except Exception as db_err:
+            print(f"\n[DATABASE WARNING] Could not connect to MySQL server ({str(db_err)[:90]}).")
+            print("--> Falling back seamlessly to SQLite database: sqlite:///ai_shopping_assistant.db\n")
+            sqlite_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'ai_shopping_assistant.db'))
+            app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{sqlite_path}"
+            db.init_app(app)
+
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
@@ -55,15 +69,22 @@ def create_app(config_name=None):
     # Import ORM Models before migrations and loader setup
     from app import models
     from app.models.user import User
+    from app.models.category import Category
+    from app.models.product import Product
     from app.models.team_member import TeamMember
 
-    # Seed official team members into database safely
+    # Seed official team members and auto-populate sample categories & products if database is empty
     try:
         with app.app_context():
             db.create_all()
             TeamMember.seed_official_members()
-    except Exception:
-        pass
+            # Auto-seed sample dataset if database is empty
+            if Category.query.count() == 0 or Product.query.count() == 0:
+                print("[DATABASE SEED] Empty database detected. Auto-seeding initial categories & products...")
+                from database.seed_data import seed_database
+                seed_database()
+    except Exception as seed_err:
+        print(f"[DATABASE SEED WARNING] Could not auto-seed database: {seed_err}")
 
     # User Loader Callback for Flask-Login
     @login_manager.user_loader
@@ -99,6 +120,10 @@ def create_app(config_name=None):
     app.register_blueprint(profile_bp, url_prefix='/profile')
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
+    # Register Jinja2 Template Filters & Context Helpers
+    from app.presenters.product_presenter import ProductPresenter
+    app.jinja_env.filters['clean_image_url'] = ProductPresenter.clean_image_url
+
     @app.context_processor
     def inject_cart_and_wishlist_count():
         from flask_login import current_user
@@ -114,7 +139,11 @@ def create_app(config_name=None):
                 w_count = Wishlist.query.filter_by(user_id=current_user.id).count()
             except Exception:
                 pass
-        return dict(cart_item_count=int(c_count), wishlist_item_count=int(w_count))
+        return dict(
+            cart_item_count=int(c_count),
+            wishlist_item_count=int(w_count),
+            clean_image_url=ProductPresenter.clean_image_url
+        )
 
     return app
 

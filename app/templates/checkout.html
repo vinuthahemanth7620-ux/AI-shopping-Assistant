@@ -68,8 +68,8 @@
                         </div>
 
                         <div class="col-md-12 mt-4">
-                            <button type="submit" class="btn btn-warning btn-lg w-100 rounded-pill fw-bold shadow">
-                                <i class="fa-solid fa-lock me-2"></i> Place Order ({{ cart_total_formatted }})
+                            <button type="submit" id="placeOrderBtn" class="btn btn-warning btn-lg w-100 rounded-pill fw-bold shadow text-dark" onclick="this.form.checkValidity() && (this.disabled=true, this.innerHTML='<i class=\'fa-solid fa-spinner fa-spin me-2\'></i> Placing Order...', this.form.submit())">
+                                <i class="fa-solid fa-lock me-2"></i> Place Order ({{ buy_now_total_formatted if is_buy_now else cart_total_formatted }})
                             </button>
                         </div>
                     </div>
@@ -80,28 +80,44 @@
         <!-- RIGHT: ORDER SUMMARY -->
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm rounded-4 p-4 bg-light">
-                <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="fa-solid fa-basket-shopping me-2 text-primary"></i>Order Summary</h5>
+                <h5 class="fw-bold mb-3 border-bottom pb-2">
+                    <i class="fa-solid fa-basket-shopping me-2 text-primary"></i>
+                    {% if is_buy_now %}Direct Purchase Summary{% else %}Cart Order Summary{% endif %}
+                </h5>
 
                 <div class="cart-items-scroll mb-3" style="max-height: 320px; overflow-y: auto;">
-                    {% for item in cart_items %}
-                    <div class="d-flex align-items-center justify-content-between mb-3 bg-white p-2 rounded-3 border">
-                        <div class="d-flex align-items-center gap-2">
-                            <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" style="width: 45px; height: 45px; object-fit: contain;">
+                    {% if is_buy_now and buy_now_product %}
+                    <div class="d-flex align-items-center justify-content-between mb-3 bg-white p-3 rounded-3 border shadow-2xs">
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="{{ buy_now_product.primary_image_url }}" alt="{{ buy_now_product.name }}" style="width: 50px; height: 50px; object-fit: contain;" onerror="this.onerror=null; this.src='/static/images/placeholder_product.svg';">
                             <div>
-                                <h6 class="mb-0 small fw-bold text-truncate" style="max-width: 180px;">{{ item.product.name }}</h6>
-                                <span class="extra-small text-muted">Qty: {{ item.quantity }} × ₹{{ item.unit_price|round(2) }}</span>
+                                <h6 class="mb-0 small fw-bold text-truncate" style="max-width: 200px;" title="{{ buy_now_product.name }}">{{ buy_now_product.name }}</h6>
+                                <span class="extra-small text-muted">Quantity: {{ buy_now_quantity }} × {{ buy_now_product.price_formatted }}</span>
                             </div>
                         </div>
-                        <span class="fw-bold text-success small">₹{{ item.subtotal|round(2) }}</span>
+                        <span class="fw-bold text-success font-monospace">{{ buy_now_total_formatted }}</span>
                     </div>
-                    {% endfor %}
+                    {% else %}
+                        {% for item in cart_items %}
+                        <div class="d-flex align-items-center justify-content-between mb-3 bg-white p-2 rounded-3 border">
+                            <div class="d-flex align-items-center gap-2">
+                                <img src="{{ item.product.image_url | clean_image_url }}" alt="{{ item.product.name }}" style="width: 45px; height: 45px; object-fit: contain;" onerror="this.onerror=null; this.src='/static/images/placeholder_product.svg';">
+                                <div>
+                                    <h6 class="mb-0 small fw-bold text-truncate" style="max-width: 180px;">{{ item.product.name }}</h6>
+                                    <span class="extra-small text-muted">Qty: {{ item.quantity }} × ₹{{ item.unit_price|round(2) }}</span>
+                                </div>
+                            </div>
+                            <span class="fw-bold text-success small">₹{{ item.subtotal|round(2) }}</span>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
                 </div>
 
                 <hr>
 
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Subtotal:</span>
-                    <span class="fw-semibold">{{ cart_total_formatted }}</span>
+                    <span class="fw-semibold font-monospace">{{ buy_now_total_formatted if is_buy_now else cart_total_formatted }}</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Delivery Charge:</span>
@@ -112,7 +128,7 @@
 
                 <div class="d-flex justify-content-between fs-5 fw-bold">
                     <span>Total Amount:</span>
-                    <span class="text-success">{{ cart_total_formatted }}</span>
+                    <span class="text-success font-monospace">{{ buy_now_total_formatted if is_buy_now else cart_total_formatted }}</span>
                 </div>
             </div>
         </div>

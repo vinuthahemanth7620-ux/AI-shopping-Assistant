@@ -33,7 +33,7 @@ class Product(db.Model):
     price = db.Column(db.Numeric(10, 2), nullable=False)
     rating = db.Column(db.Numeric(3, 2), default=0.00, nullable=False)
 
-    # Detailed Content & Specifications
+    # Detailed Content & Specifications (Raw Data)
     description = db.Column(db.Text, nullable=True)
     specifications = db.Column(db.JSON, nullable=True)
     image_url = db.Column(db.String(500), nullable=True)
@@ -93,6 +93,42 @@ class Product(db.Model):
         return value
 
     @property
+    def display_short_summary(self):
+        """Clean 1-2 sentence product summary."""
+        from app.services.product_processor import ProductInformationProcessor
+        return ProductInformationProcessor.generate_short_summary(self)
+
+    @property
+    def display_key_features(self):
+        """Extracted list of 3-4 high-priority key feature bullet points."""
+        from app.services.product_processor import ProductInformationProcessor
+        return ProductInformationProcessor.extract_important_features(self, limit=3)
+
+    @property
+    def display_important_specifications(self):
+        """Clean dictionary of useful product specifications for user display."""
+        from app.services.product_processor import ProductInformationProcessor
+        return ProductInformationProcessor.extract_important_specifications(self)
+
+    @property
+    def short_description(self):
+        return self.display_short_summary
+
+    @property
+    def important_features(self):
+        return self.display_key_features
+
+    @property
+    def important_specifications(self):
+        return self.display_important_specifications
+
+    @property
+    def primary_image_url(self):
+        """Unified primary image URL property using centralized normalizer."""
+        from app.presenters.product_presenter import ProductPresenter
+        return ProductPresenter.clean_image_url(self.image_url)
+
+    @property
     def normalized_price_inr(self):
         """Unified price normalizer property for Product model."""
         if self.price is None:
@@ -119,7 +155,10 @@ class Product(db.Model):
             'rating': float(self.rating) if self.rating is not None else 0.0,
             'description': self.description,
             'specifications': self.specifications,
-            'image_url': self.image_url,
+            'short_description': self.display_short_summary,
+            'important_features': self.display_key_features,
+            'important_specifications': self.display_important_specifications,
+            'image_url': self.primary_image_url,
             'stock_quantity': self.stock_quantity,
             'is_available': self.is_available,
             'is_active': self.is_active,

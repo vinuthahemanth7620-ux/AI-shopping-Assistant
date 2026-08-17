@@ -142,6 +142,25 @@ def contact():
     return render_template('contact.html', official_members=official_members)
 
 
+@main_bp.route('/api/health', methods=['GET'])
+def health_check():
+    """Development & Debugging Health Check Endpoint"""
+    from flask import jsonify
+    return jsonify({'status': 'ok'}), 200
+
+
+@main_bp.route('/order/buy-now/<int:product_id>', methods=['GET', 'POST'])
+def order_buy_now_alias(product_id):
+    """Route alias redirecting /order/buy-now/ to /orders/buy-now/"""
+    return redirect(url_for('order.buy_now', product_id=product_id, **request.args), code=307 if request.method == 'POST' else 302)
+
+
+@main_bp.route('/order/checkout', methods=['GET', 'POST'])
+def order_checkout_alias():
+    """Route alias redirecting /order/checkout to /orders/checkout"""
+    return redirect(url_for('order.checkout', **request.args), code=307 if request.method == 'POST' else 302)
+
+
 
 
 

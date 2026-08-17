@@ -174,7 +174,7 @@
                                 <i class="fa-regular fa-heart text-danger"></i>
                             </button>
                             <a href="{{ url_for('product.product_details', product_id=product.id) }}" class="d-block h-100">
-                                <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid h-100 object-fit-contain transition-zoom" onerror="this.src='https://via.placeholder.com/200';">
+                                <img src="{{ product.image_url | clean_image_url }}" alt="{{ product.name }}" class="img-fluid h-100 object-fit-contain transition-zoom" onerror="this.onerror=null; this.src='/static/images/placeholder_product.svg';">
                             </a>
                         </div>
                         <div class="card-body p-3 d-flex flex-column">
@@ -221,7 +221,7 @@
                         <div class="position-relative bg-light p-3 text-center" style="height: 170px;">
                             <span class="badge bg-danger position-absolute top-0 start-0 m-2 rounded-pill px-2 py-1 fw-bold">Top Deal</span>
                             <a href="{{ url_for('product.product_details', product_id=product.id) }}" class="d-block h-100">
-                                <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid h-100 object-fit-contain" onerror="this.src='https://via.placeholder.com/200';">
+                                <img src="{{ product.image_url | clean_image_url }}" alt="{{ product.name }}" class="img-fluid h-100 object-fit-contain" onerror="this.onerror=null; this.src='/static/images/placeholder_product.svg';">
                             </a>
                         </div>
                         <div class="card-body p-3 d-flex flex-column">
@@ -264,7 +264,7 @@
                         <div class="position-relative bg-light p-3 text-center" style="height: 170px;">
                             <span class="badge bg-success position-absolute top-0 start-0 m-2 rounded-pill px-2 py-1 fw-bold">New</span>
                             <a href="{{ url_for('product.product_details', product_id=product.id) }}" class="d-block h-100">
-                                <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid h-100 object-fit-contain" onerror="this.src='https://via.placeholder.com/200';">
+                                <img src="{{ product.image_url | clean_image_url }}" alt="{{ product.name }}" class="img-fluid h-100 object-fit-contain" onerror="this.onerror=null; this.src='/static/images/placeholder_product.svg';">
                             </a>
                         </div>
                         <div class="card-body p-3 d-flex flex-column">

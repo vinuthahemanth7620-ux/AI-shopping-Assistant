@@ -105,6 +105,20 @@
                     <div class="col-12">
                         <label for="image_url" class="form-label fw-bold text-dark small">Image URL</label>
                         <input type="text" id="image_url" name="image_url" class="form-control" value="{{ form_data.image_url }}">
+                        <div class="form-text small mb-2">Update product image URL or path. If left blank or invalid, placeholder image will be used.</div>
+
+                        <!-- Real-time Image Preview Box -->
+                        <div class="p-3 bg-light rounded-3 border d-flex align-items-center gap-3 mt-2">
+                            <div class="position-relative border rounded p-1 bg-white d-flex align-items-center justify-content-center shadow-sm" style="width: 80px; height: 80px; flex-shrink: 0;">
+                                <img id="image_preview" src="{{ form_data.image_url | clean_image_url }}" alt="Product Image Preview" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="handlePreviewError(this);">
+                            </div>
+                            <div>
+                                <span class="fw-bold small text-dark d-block mb-1">Current Image Preview</span>
+                                <div id="preview_status" class="small text-muted">
+                                    <i class="fa-solid fa-image me-1"></i> Live preview of product thumbnail
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Description -->
@@ -135,4 +149,41 @@
         </div>
     </div>
 </div>
+
+<script>
+function handlePreviewError(img) {
+    img.onerror = null;
+    img.src = '/static/images/placeholder_product.svg';
+    const statusEl = document.getElementById('preview_status');
+    if (statusEl) {
+        statusEl.innerHTML = '<span class="text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> Unable to load image from URL (using fallback placeholder)</span>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const imgInput = document.getElementById('image_url');
+    const imgPreview = document.getElementById('image_preview');
+    const statusEl = document.getElementById('preview_status');
+
+    if (imgInput && imgPreview) {
+        imgInput.addEventListener('input', function() {
+            let val = this.value.trim();
+            if (!val) {
+                imgPreview.onerror = null;
+                imgPreview.src = '/static/images/placeholder_product.svg';
+                if (statusEl) statusEl.innerHTML = '<span class="text-muted"><i class="fa-solid fa-image me-1"></i> No image URL provided (using fallback placeholder)</span>';
+                return;
+            }
+            let match = val.match(/\((https?:\/\/[^\)]+)\)/) || val.match(/https?:\/\/[^\s\]\)\"\']+/);
+            let src = match ? match[0] : val;
+            if (!src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('/')) {
+                src = '/' + src;
+            }
+            imgPreview.onerror = function() { handlePreviewError(this); };
+            imgPreview.src = src;
+            if (statusEl) statusEl.innerHTML = '<span class="text-success"><i class="fa-solid fa-check me-1"></i> Image loaded</span>';
+        });
+    }
+});
+</script>
 {% endblock %}

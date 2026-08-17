@@ -63,14 +63,23 @@ def test_footer_social_links():
         if tc1_ok: passed += 1
         else: failed += 1
 
-        # 3. Verify README.md
-        print("\n--- TEST GROUP 3: README.MD SOCIAL LINKS ---")
+        # 3. Fetch About Us Page
+        print("\n--- TEST GROUP 3: ABOUT US PAGE SOCIAL LINKS ---")
+        res_about = client.get('/about')
+        html_about = res_about.data.decode('utf-8')
+        ta1_ok = v_li in html_about and t_li in html_about
+        print(f"6. Vinutha & Thanushree LinkedIn Links in About Us Page: {'PASSED' if ta1_ok else 'FAILED'}")
+        if ta1_ok: passed += 1
+        else: failed += 1
+
+        # 4. Verify README.md
+        print("\n--- TEST GROUP 4: README.MD SOCIAL LINKS ---")
         readme_path = os.path.join(os.path.abspath('.'), 'README.md')
         with open(readme_path, 'r', encoding='utf-8') as f:
             readme_text = f.read()
 
         r1_ok = v_gh in readme_text and v_li in readme_text and t_gh in readme_text and t_li in readme_text
-        print(f"6. All 4 Exact Team Social Links in README.md: {'PASSED' if r1_ok else 'FAILED'}")
+        print(f"7. All 4 Exact Team Social Links in README.md: {'PASSED' if r1_ok else 'FAILED'}")
         if r1_ok: passed += 1
         else: failed += 1
 

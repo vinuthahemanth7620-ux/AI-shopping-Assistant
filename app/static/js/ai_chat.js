@@ -5,6 +5,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', function () {
+    let isSubmitting = false;
+
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
     const sendBtn = document.getElementById('sendBtn');
@@ -29,11 +31,26 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function getCSRFToken() {
+        if (csrfTokenInput && csrfTokenInput.value) {
+            return csrfTokenInput.value;
+        }
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta && csrfMeta.getAttribute('content')) {
+            return csrfMeta.getAttribute('content');
+        }
+        return '';
+    }
+
     // Suggested Questions Chip Clicks
     suggestedChips.forEach(chip => {
-        chip.addEventListener('click', function () {
+        chip.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isSubmitting) return;
             const questionText = this.textContent.trim();
-            chatInput.value = questionText;
+            if (!questionText) return;
+            if (chatInput) chatInput.value = questionText;
             if (charCounter) charCounter.textContent = `${questionText.length} / ${MAX_LENGTH}`;
             submitUserQuestion(questionText);
         });
@@ -41,20 +58,48 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Clear Chat Button Click
     if (clearChatBtn) {
-        clearChatBtn.addEventListener('click', function () {
-            chatMessages.innerHTML = `
-                <div class="d-flex gap-3 mb-4 message-wrapper ai-message">
-                    <div class="avatar-icon bg-warning text-dark rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">
-                        <i class="fa-solid fa-robot"></i>
-                    </div>
-                    <div class="message-content-wrapper flex-grow-1">
-                        <div class="p-3 rounded-4 shadow-sm bg-white border border-light-subtle text-dark">
-                            <p class="fw-semibold text-primary mb-1 small"><i class="fa-solid fa-sparkles me-1"></i> AI Shopping Assistant</p>
-                            <p class="mb-0">Chat history cleared! Ask me anything about products in our catalog.</p>
+        clearChatBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isSubmitting) return;
+
+            const csrfToken = getCSRFToken();
+
+            fetch('/ai/clear-history', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (chatMessages) {
+                    chatMessages.innerHTML = `
+                        <div class="d-flex gap-3 mb-4 message-wrapper ai-message">
+                            <div class="avatar-icon bg-warning text-dark rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">
+                                <i class="fa-solid fa-robot"></i>
+                            </div>
+                            <div class="message-content-wrapper flex-grow-1">
+                                <div class="p-3 rounded-4 shadow-sm bg-white border border-light-subtle text-dark">
+                                    <p class="fw-semibold text-primary mb-1 small"><i class="fa-solid fa-sparkles me-1"></i> AI Shopping Assistant</p>
+                                    <p class="mb-0">Hi! I can help you find products from our catalog. What are you looking for?</p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            `;
+                    `;
+                }
+                try {
+                    sessionStorage.removeItem('chat_history');
+                    localStorage.removeItem('chat_history');
+                } catch(ex) {}
+                showToastNotification('Chat history cleared!', 'success');
+            })
+            .catch(err => {
+                console.error("Error clearing chat history:", err);
+                showToastNotification('Failed to clear chat history from server.', 'danger');
+            });
         });
     }
 
@@ -62,7 +107,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (chatForm) {
         chatForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            const message = chatInput.value.trim();
+            e.stopPropagation();
+            if (isSubmitting) return;
+            const message = chatInput ? chatInput.value.trim() : '';
             if (!message) return;
             if (message.length > MAX_LENGTH) {
                 alert(`Message exceeds maximum limit of ${MAX_LENGTH} characters.`);
@@ -76,11 +123,14 @@ document.addEventListener('DOMContentLoaded', function () {
      * Submit user question via fetch() AJAX POST
      */
     function submitUserQuestion(questionText) {
+        if (isSubmitting) return;
+        isSubmitting = true;
+
         // 1. Render User Message Bubble
         appendUserMessage(questionText);
 
         // 2. Clear input
-        chatInput.value = '';
+        if (chatInput) chatInput.value = '';
         if (charCounter) charCounter.textContent = `0 / ${MAX_LENGTH}`;
 
         // 3. Show Loading Indicator
@@ -89,40 +139,70 @@ document.addEventListener('DOMContentLoaded', function () {
         // 4. Disable Input & Button while processing
         setFormState(true);
 
-        // 5. Get CSRF Token
-        const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
+        // 5. Get CSRF Token dynamically
+        const csrfToken = getCSRFToken();
 
         // 6. Send AJAX Request to /ai/chat
         fetch('/ai/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({ message: questionText })
         })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw err; });
+        .then(async response => {
+            let data = {};
+            try {
+                data = await response.json();
+            } catch (e) {
+                data = {};
             }
-            return response.json();
+
+            if (!response.ok) {
+                if (data && data.ai_response) {
+                    throw { ai_response: data.ai_response };
+                }
+                if (response.status === 401) {
+                    throw { ai_response: 'Your session has expired. Please log in again.' };
+                }
+                if (response.status === 403) {
+                    throw { ai_response: 'Access forbidden or CSRF token invalid. Please refresh the page and try again.' };
+                }
+                if (response.status === 404) {
+                    throw { ai_response: 'The requested AI Assistant endpoint was not found (404).' };
+                }
+                if (response.status >= 500) {
+                    throw { ai_response: 'The server encountered an internal error (500). Please try again.' };
+                }
+                throw { ai_response: `Request failed with status ${response.status}. Please try again.` };
+            }
+            return data;
         })
         .then(data => {
             removeLoadingIndicator(loadingId);
-            setFormState(false);
 
             if (data && data.success) {
                 appendAIMessage(data.ai_response, data.recommended_products);
             } else {
-                appendErrorMessage(data.ai_response || 'Failed to get recommendation. Please try again.');
+                appendErrorMessage((data && data.ai_response) ? data.ai_response : 'Failed to get recommendation. Please try again.');
             }
         })
         .catch(err => {
             removeLoadingIndicator(loadingId);
-            setFormState(false);
             console.error('Chat AJAX error:', err);
-            const errorMsg = (err && err.ai_response) ? err.ai_response : 'Network error or server unavailable. Please try again.';
+            let errorMsg = 'Unable to connect to the server. Please make sure the backend application server is running.';
+            if (err && err.ai_response) {
+                errorMsg = err.ai_response;
+            } else if (err && err.message && typeof err.message === 'string') {
+                errorMsg = err.message;
+            }
             appendErrorMessage(errorMsg);
+        })
+        .finally(() => {
+            isSubmitting = false;
+            setFormState(false);
         });
     }
 
@@ -188,8 +268,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (products && Array.isArray(products) && products.length > 0) {
             productsHTML = `
                 <div class="mt-3">
-                    <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-boxes-packing text-primary me-1"></i> Recommended Products (${products.length})</h6>
-                    <div class="row row-cols-1 row-cols-md-2 g-3">
+                    <div class="row row-cols-1 row-cols-md-3 g-3">
                         ${products.map(p => renderProductCardHTML(p)).join('')}
                     </div>
                 </div>
@@ -213,48 +292,79 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /**
+     * Client-side image URL normalizer
+     */
+    function cleanImageURL(url) {
+        if (!url) return '/static/images/placeholder_product.svg';
+        let s = String(url).trim();
+        if (!s || ['none', 'nan', 'null', '[]', '{}', 'undefined'].includes(s.toLowerCase())) {
+            return '/static/images/placeholder_product.svg';
+        }
+        let mdMatch = s.match(/\((https?:\/\/[^\)]+)\)/);
+        if (mdMatch) return mdMatch[1].trim();
+        let httpMatch = s.match(/https?:\/\/[^\s\]\)\"\']+/);
+        if (httpMatch) return httpMatch[0].trim().replace(/[\,\"\']+$/, '');
+        if (s.startsWith('static/') || s.startsWith('/static/')) {
+            return s.startsWith('/') ? s : '/' + s;
+        }
+        if (s.startsWith('/') && s.length > 1 && !s.startsWith('//')) {
+            return s;
+        }
+        return '/static/images/placeholder_product.svg';
+    }
+
+    /**
      * Render Single Product Card HTML snippet for chat recommendations
      */
     function renderProductCardHTML(product) {
         const ratingVal = product.rating ? (product.rating.value || product.rating) : '0.0';
-        const imgUrl = product.image_url || '/static/images/placeholder_product.png';
+        const imgUrl = cleanImageURL(product.image_url);
         const detailUrl = `/products/${product.id}`;
         const prodName = escapeHTML(product.name);
-        const scoreBadge = product.recommendation_score ? `<span class="badge bg-success text-white small fw-semibold"><i class="fa-solid fa-chart-line me-1"></i>${Math.round(product.recommendation_score)}% Match</span>` : '';
-        const reasonHTML = product.recommendation_reason ? `<div class="text-muted extra-small mb-2 fst-italic" style="font-size: 0.75rem;"><i class="fa-solid fa-circle-info text-info me-1"></i>${escapeHTML(product.recommendation_reason)}</div>` : '';
+        const shortDesc = escapeHTML(product.short_description || product.name || '');
+        const formattedPrice = product.price_formatted ? product.price_formatted : (typeof priceFmt === 'function' ? priceFmt(product.price_raw || product.price) : 'Price unavailable');
+
+        const features = Array.isArray(product.important_features) ? product.important_features.slice(0, 3) : [];
+        let featuresHTML = '';
+        if (features.length > 0) {
+            featuresHTML = `
+                <ul class="list-unstyled extra-small text-secondary mb-2 ps-0 border-top pt-1 text-start" style="font-size: 0.72rem;">
+                    ${features.map(f => `<li class="text-truncate mb-1"><i class="fa-solid fa-circle-check text-success me-1"></i>${escapeHTML(f)}</li>`).join('')}
+                </ul>
+            `;
+        }
 
         return `
             <div class="col">
                 <div class="card h-100 border shadow-sm rounded-3 overflow-hidden bg-white hover-shadow transition-all">
                     <div class="p-2">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="badge bg-light text-primary border me-1 small">${escapeHTML(product.brand || 'Brand')}</span>
-                            <div class="d-flex gap-1 align-items-center">
-                                ${scoreBadge}
-                                <span class="badge bg-warning text-dark small fw-bold"><i class="fa-solid fa-star me-1"></i>${ratingVal}</span>
-                            </div>
+                        <div class="text-center bg-light p-2 rounded-2 mb-2" style="height: 120px;">
+                            <a href="${detailUrl}">
+                                <img src="${imgUrl}" alt="${prodName}" class="img-fluid rounded h-100 object-fit-contain" onerror="this.onerror=null; this.src='/static/images/placeholder_product.svg';">
+                            </a>
                         </div>
-                        <div class="row g-0 align-items-center">
-                            <div class="col-4 text-center bg-light p-2 rounded-2" style="height: 95px;">
-                                <a href="${detailUrl}">
-                                    <img src="${imgUrl}" alt="${prodName}" class="img-fluid rounded h-100 object-fit-contain" onerror="this.src='https://via.placeholder.com/150';">
-                                </a>
-                            </div>
-                            <div class="col-8 ps-3">
-                                <h6 class="card-title fs-6 mb-1 mt-1 text-truncate" title="${prodName}">
-                                    <a href="${detailUrl}" class="text-dark text-decoration-none fw-bold">${prodName}</a>
-                                </h6>
-                                <div class="fw-bold text-success mb-1">${product.price_formatted || ('₹' + (product.price_raw || 0))}</div>
-                                ${reasonHTML}
-                                <div class="d-flex gap-1">
-                                    <button type="button" class="btn btn-sm btn-primary rounded-pill flex-fill py-1 fw-semibold add-to-cart-ai-btn" data-product-id="${product.id}" data-product-name="${prodName}">
-                                        <i class="fa-solid fa-cart-shopping me-1"></i> Cart
-                                    </button>
-                                    <a href="${detailUrl}" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-2 fw-semibold text-center" title="View Details">
-                                        <i class="fa-solid fa-chevron-right"></i>
-                                    </a>
-                                </div>
-                            </div>
+                        <h6 class="card-title fs-6 mb-1 text-truncate" title="${prodName}">
+                            <a href="${detailUrl}" class="text-dark text-decoration-none fw-bold">${prodName}</a>
+                        </h6>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="fw-bold text-success fs-6">${formattedPrice}</span>
+                            <span class="badge bg-warning text-dark small fw-bold"><i class="fa-solid fa-star me-1"></i>${ratingVal}</span>
+                        </div>
+                        <p class="card-text small text-muted text-truncate mb-1" style="font-size: 0.75rem;" title="${shortDesc}">${shortDesc}</p>
+                        ${featuresHTML}
+                        <div class="d-flex gap-1 align-items-center">
+                            <a href="${detailUrl}" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-2 fw-semibold extra-small text-center" style="font-size: 0.72rem;">
+                                Details
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill py-1 px-2 fw-semibold extra-small add-to-cart-ai-btn" data-product-id="${product.id}" data-product-name="${prodName}" style="font-size: 0.72rem;">
+                                <i class="fa-solid fa-cart-shopping me-1"></i> Cart
+                            </button>
+                            <a href="/order/buy-now/${product.id}" class="btn btn-sm btn-warning rounded-pill py-1 px-2 fw-bold text-dark extra-small flex-fill text-center shadow-2xs" style="font-size: 0.72rem;">
+                                <i class="fa-solid fa-bolt me-1"></i> Buy Now
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill py-1 px-2 wishlist-toggle-btn" data-product-id="${product.id}" title="Wishlist" style="font-size: 0.72rem;">
+                                <i class="fa-regular fa-heart"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -373,22 +483,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             </div>
         `;
-        chatMessages.appendChild(wrapper);
-        scrollToBottom();
+        if (chatMessages) {
+            chatMessages.appendChild(wrapper);
+            scrollToBottom();
+        }
     }
 
     function setFormState(disabled) {
-        chatInput.disabled = disabled;
-        sendBtn.disabled = disabled;
-        if (disabled) {
-            sendBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Thinking...`;
-        } else {
-            sendBtn.innerHTML = `<span>Send</span> <i class="fa-solid fa-paper-plane ms-1"></i>`;
+        if (chatInput) chatInput.disabled = disabled;
+        if (sendBtn) {
+            sendBtn.disabled = disabled;
+            if (disabled) {
+                sendBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Thinking...`;
+            } else {
+                sendBtn.innerHTML = `<span>Send</span> <i class="fa-solid fa-paper-plane ms-1"></i>`;
+            }
         }
     }
 
     function scrollToBottom() {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
     }
 
     function escapeHTML(str) {

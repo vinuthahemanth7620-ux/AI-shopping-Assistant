@@ -161,6 +161,10 @@ class AdminService:
 
         db.session.add(new_product)
         db.session.commit()
+        
+        from app.services.product_service import ProductService
+        ProductService.invalidate_caches()
+
         return new_product
 
     @classmethod
@@ -207,6 +211,10 @@ class AdminService:
 
         product.updated_at = datetime.utcnow()
         db.session.commit()
+
+        from app.services.product_service import ProductService
+        ProductService.invalidate_caches()
+
         return product
 
     @classmethod
@@ -220,4 +228,8 @@ class AdminService:
 
         db.session.delete(product)
         db.session.commit()
+
+        from app.services.product_service import ProductService
+        ProductService.invalidate_caches()
+
         return True

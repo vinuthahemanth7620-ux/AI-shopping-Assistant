@@ -171,7 +171,7 @@
                             {% for p in view.recent_products %}
                             <tr>
                                 <td class="ps-3">
-                                    <img src="{{ p.image_url }}" alt="{{ p.name }}" class="rounded border p-1 bg-light" style="width: 48px; height: 48px; object-fit: contain;" onerror="this.src='https://via.placeholder.com/100';">
+                                    <img src="{{ p.image_url | clean_image_url }}" alt="{{ p.name }}" class="rounded-3 border p-1 bg-light shadow-sm" style="width: 60px; height: 60px; object-fit: contain;" loading="lazy" onerror="this.onerror=null; this.src='/static/images/placeholder_product.svg';">
                                 </td>
                                 <td>
                                     <a href="{{ url_for('admin.view_product', product_id=p.id) }}" class="fw-bold text-dark text-decoration-none">

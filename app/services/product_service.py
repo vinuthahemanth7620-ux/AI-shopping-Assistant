@@ -12,33 +12,47 @@ class ProductService:
     Product Service Layer - Database queries, search, filter, sort, and pagination.
     Encapsulates all SQLAlchemy ORM operations for products and categories.
     """
+    _BRANDS_CACHE = None
+    _PRICE_BOUNDS_CACHE = None
 
-    @staticmethod
-    def get_all_categories():
+    @classmethod
+    def invalidate_caches(cls):
+        """Invalidate in-memory caches when products are created, updated, or deleted."""
+        cls._BRANDS_CACHE = None
+        cls._PRICE_BOUNDS_CACHE = None
+
+    @classmethod
+    def get_all_categories(cls):
         """Retrieve all active categories ordered by name."""
         return Category.query.filter_by(is_active=True).order_by(Category.name.asc()).all()
 
-    @staticmethod
-    def get_all_brands():
-        """Retrieve all distinct brands from active products."""
+    @classmethod
+    def get_all_brands(cls):
+        """Retrieve all distinct brands from active products (cached)."""
+        if cls._BRANDS_CACHE is not None:
+            return cls._BRANDS_CACHE
         results = db.session.query(Product.brand)\
             .filter(Product.is_active == True)\
             .distinct()\
             .order_by(Product.brand.asc())\
             .all()
-        return [r[0] for r in results if r[0]]
+        cls._BRANDS_CACHE = [r[0] for r in results if r[0]]
+        return cls._BRANDS_CACHE
 
-    @staticmethod
-    def get_price_bounds():
-        """Get the minimum and maximum normalized price (INR) across active products for filter inputs."""
+    @classmethod
+    def get_price_bounds(cls):
+        """Get the minimum and maximum normalized price (INR) across active products for filter inputs (cached)."""
+        if cls._PRICE_BOUNDS_CACHE is not None:
+            return cls._PRICE_BOUNDS_CACHE
         norm_expr = case((and_(Product.category_id > 4, Product.price < 3000.0), Product.price * USD_TO_INR), else_=Product.price)
         min_p = db.session.query(func.min(norm_expr)).filter(Product.is_active == True).scalar()
         max_p = db.session.query(func.max(norm_expr)).filter(Product.is_active == True).scalar()
         
-        return {
+        cls._PRICE_BOUNDS_CACHE = {
             'min_price': float(min_p) if min_p is not None else 0.0,
             'max_price': float(max_p) if max_p is not None else 1000000.0
         }
+        return cls._PRICE_BOUNDS_CACHE
 
     @staticmethod
     def get_product_by_id(product_id):

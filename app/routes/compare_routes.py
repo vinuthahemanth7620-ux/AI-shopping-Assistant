@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session
 from app.models.product import Product
 from app.presenters.product_presenter import ProductPresenter
 
@@ -14,7 +14,7 @@ def compare_products():
     """
     p_ids_raw = []
     
-    # Check comma-separated products or individual p1, p2, p3 params
+    # Check comma-separated products or individual p1, p2, p3 params or session compare list
     if request.args.get('products'):
         p_ids_raw = request.args.get('products', '').split(',')
     else:
@@ -22,11 +22,14 @@ def compare_products():
             val = request.args.get(key)
             if val:
                 p_ids_raw.append(val)
+    
+    if not p_ids_raw and session.get('compare_list'):
+        p_ids_raw = [str(pid) for pid in session.get('compare_list', [])]
 
     p_ids = []
     for pid in p_ids_raw:
         try:
-            p_ids.append(int(pid.strip()))
+            p_ids.append(int(str(pid).strip()))
         except (ValueError, TypeError):
             pass
 
@@ -50,3 +53,28 @@ def compare_products():
         compared_products=compared_products,
         sample_products=sample_products
     )
+
+
+@compare_bp.route('/add/<int:product_id>', methods=['POST'])
+def add_to_compare(product_id):
+    """Add product ID to comparison session."""
+    compare_list = session.get('compare_list', [])
+    if product_id not in compare_list:
+        if len(compare_list) >= 4:
+            compare_list.pop(0)
+        compare_list.append(product_id)
+        session['compare_list'] = compare_list
+        flash('Product added to comparison.', 'success')
+    return redirect(url_for('compare.compare_products', products=','.join(map(str, compare_list))))
+
+
+@compare_bp.route('/remove/<int:product_id>', methods=['POST'])
+def remove_from_compare(product_id):
+    """Remove product ID from comparison session."""
+    compare_list = session.get('compare_list', [])
+    if product_id in compare_list:
+        compare_list.remove(product_id)
+        session['compare_list'] = compare_list
+        flash('Product removed from comparison.', 'info')
+    return redirect(url_for('compare.compare_products', products=','.join(map(str, compare_list))))
+
